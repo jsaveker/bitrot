@@ -3,12 +3,5 @@
   "compatibility_date": "2025-04-19",
   "assets": {
     "directory": "./dist"
-  },
-  "routes": [
-    {
-      "pattern": "*.bitrot.sh/*",
-      "custom_domain": "bitrot.sh",
-      "zone_name": "bitrot.sh"
-    }
-  ]
+  }
 } 
