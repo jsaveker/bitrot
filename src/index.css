@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cyberpunk-darker text-white font-cyber;
+  }
+}
+
+@layer components {
+  .cyber-button {
+    @apply px-6 py-3 bg-cyberpunk-primary text-cyberpunk-darker font-bold 
+           hover:bg-cyberpunk-accent transition-all duration-300 
+           border-2 border-cyberpunk-primary hover:border-cyberpunk-accent;
+  }
+  
+  .cyber-input {
+    @apply bg-cyberpunk-dark border-2 border-cyberpunk-primary 
+           text-white px-4 py-2 focus:outline-none focus:border-cyberpunk-accent;
+  }
+}
+
+.scanline {
+  @apply fixed top-0 left-0 w-full h-1 bg-cyberpunk-primary opacity-20;
+  animation: scanline 6s linear infinite;
+  pointer-events: none;
+} 
