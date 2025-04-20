@@ -1,0 +1,25 @@
+# Cloudflare Pages configuration
+name = "bitrot"
+compatibility_date = "2023-10-30" # Use a recent date
+
+# Pages Functions configuration (directory where functions live)
+[functions]
+  directory = "./functions"
+
+# KV Namespace binding
+# Replace YOUR_KV_NAMESPACE_ID with your actual KV Namespace ID from Cloudflare
+[[kv_namespaces]]
+binding = "BITROT_KV" # How the KV namespace is accessed in the code (e.g., env.BITROT_KV)
+id = "707487e7eb2c46c1bc6e1eb381f67539" # The actual ID from Cloudflare
+preview_id = "707487e7eb2c46c1bc6e1eb381f67539" # Use the same ID for local preview
+
+# R2 Bucket binding
+# Replace YOUR_R2_BUCKET_NAME with your actual R2 bucket name from Cloudflare
+[[r2_buckets]]
+binding = "BITROT_R2" # How the R2 bucket is accessed in the code (e.g., env.BITROT_R2)
+bucket_name = "bitrot-r2" # The actual bucket name from Cloudflare
+preview_bucket_name = "bitrot-r2" # Use the same name for local preview
+
+# Ensure Node.js compatibility if needed for specific packages
+[node_compat]
+enabled = true 
