@@ -1,0 +1,19 @@
+Lesson 2: Backups - The Ultimate Defense
+-----------------------------------------
+
+Bit rot happens. Drives fail. Ransomware encrypts. Coffee spills.
+What's your plan?
+
+A backup is simply a *copy* of your important data stored *somewhere else*.
+
+- **Simple:** Copy files to a USB drive.
+- **Better:** Use backup software (Time Machine, Windows Backup) to automate copies to an external drive.
+- **Best:** The 3-2-1 Rule:
+    - **3** copies of your data
+    - On **2** different types of media (e.g., internal drive + external drive)
+    - With **1** copy stored off-site (e.g., cloud storage, drive at a friend's house).
+
+Freezing a file here is like making a simple backup - it stops further changes (decay).
+Real backups protect against *total loss*.
+
+(Type 'lessons list' to see other topics.) 

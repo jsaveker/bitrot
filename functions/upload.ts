@@ -55,11 +55,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         if (file.size === 0) {
             return errorResponse('Uploaded file is empty');
         }
-        // Optional: Add size limit check
-        // const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-        // if (file.size > MAX_SIZE) {
-        //    return errorResponse(`File size exceeds limit of ${MAX_SIZE / 1024 / 1024} MB`);
-        // }
+        
+        // Add explicit size limit check (5 MB)
+        const MAX_SIZE_BYTES = 5 * 1024 * 1024; 
+        if (file.size > MAX_SIZE_BYTES) {
+           const maxSizeMB = (MAX_SIZE_BYTES / 1024 / 1024).toFixed(1);
+           // Return 413 Payload Too Large
+           return errorResponse(`File size (${(file.size / 1024 / 1024).toFixed(1)} MiB) exceeds limit of ${maxSizeMB} MiB`, 413); 
+        }
 
         // 3. Generate unique ID & timestamp
         const fileId = crypto.randomUUID();
