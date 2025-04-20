@@ -9,112 +9,155 @@ const getRandomChar = () => {
 };
 
 // Glitchy text component
-const GlitchText = ({ text, interval = 50 }) => {
+const GlitchText = ({ text, interval = 50, className = '' }) => {
   const [glitchedText, setGlitchedText] = useState(text);
 
   useEffect(() => {
-    const glitchInterval = setInterval(() => {
-      let newText = '';
-      for (let i = 0; i < text.length; i++) {
-        newText += Math.random() < 0.05 ? getRandomChar() : text[i];
-      }
-      setGlitchedText(newText);
-    }, interval);
+    let glitchInterval;
+    const startGlitch = () => {
+      glitchInterval = setInterval(() => {
+        let newText = '';
+        for (let i = 0; i < text.length; i++) {
+          newText += Math.random() < 0.08 ? getRandomChar() : text[i];
+        }
+        setGlitchedText(newText);
+      }, interval);
+    };
 
-    // Reset after a short delay
-    const resetTimeout = setTimeout(() => {
+    const stopGlitch = () => {
       clearInterval(glitchInterval);
       setGlitchedText(text);
-    }, interval * 5);
+    };
+
+    const timeoutId = setTimeout(() => {
+      startGlitch();
+      setTimeout(stopGlitch, interval * 4);
+    }, Math.random() * 3000 + 1000); // Random delay before glitching
 
     return () => {
       clearInterval(glitchInterval);
-      clearTimeout(resetTimeout);
+      clearTimeout(timeoutId);
     };
   }, [text, interval]);
 
-  return <span>{glitchedText}</span>;
+  return <span className={className}>{glitchedText}</span>;
 };
+
+// ASCII Art Component (Simple Example)
+const AsciiGlitch = () => {
+  const art = [
+    '███╗   ███╗███████╗ ██████╗ ██╗   ██╗███████╗████████╗',
+    '████╗ ████║██╔════╝██╔════╝ ██║   ██║██╔════╝╚══██╔══╝',
+    '██╔████╔██║███████╗██║  ███╗██║   ██║███████╗   ██║   ',
+    '██║╚██╔╝██║╚════██║██║   ██║██║   ██║╚════██║   ██║   ',
+    '██║ ╚═╝ ██║███████║╚██████╔╝╚██████╔╝███████║   ██║   ',
+    '╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚══════╝   ╚═╝   ',
+  ];
+  const [glitchedArt, setGlitchedArt] = useState(art.join('\n'));
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      let newArt = '';
+      for (const line of art) {
+        let newLine = '';
+        for (let char of line) {
+          newLine += Math.random() < 0.005 ? getRandomChar() : char;
+        }
+        newArt += newLine + '\n';
+      }
+      setGlitchedArt(newArt);
+    }, 100);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  return <pre className="text-cyberpunk-primary text-xs md:text-sm leading-tight text-center opacity-80 mb-6">{glitchedArt}</pre>;
+}
 
 function App() {
   const [corruptionLevel, setCorruptionLevel] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCorruptionLevel((prev) => (prev >= 100 ? 0 : prev + Math.random() * 5));
-    }, 2000);
+      setCorruptionLevel((prev) => (prev >= 100 ? Math.random() * 10 : prev + Math.random() * 5));
+    }, 1500);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-cyberpunk-darker font-cyber text-white p-4 flex items-center justify-center">
-      {/* Enhanced Scanline / Grid effect */}
-      <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 157, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 157, 0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+    <div className="min-h-screen relative animate-background-pan p-4 flex items-center justify-center">
       <div className="scanline"></div>
 
-      {/* Main content container */}
+      {/* Main terminal window */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, type: 'spring', stiffness: 100 }}
-        className="relative z-10 border-2 border-cyberpunk-primary p-8 md:p-12 bg-cyberpunk-dark bg-opacity-80 max-w-3xl text-center shadow-lg shadow-cyberpunk-primary/30"
+        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+        className="terminal-window w-full max-w-4xl " // Adjusted max-width
       >
-        <h1 className="text-4xl md:text-6xl font-bold mb-4 text-cyberpunk-secondary animate-glow">
-          <GlitchText text="bitrot.sh" interval={100} />
-        </h1>
-        <p className="text-xl md:text-2xl text-cyberpunk-accent mb-6">
-          // SYSTEM STATUS: <span className="text-red-500">CRITICAL</span> //
-        </p>
-
-        <div className="text-left mb-8 space-y-2 text-sm md:text-base">
-          <p>&gt; Analyzing domain integrity...</p>
-          <p>&gt; <span className="text-yellow-400">Warning:</span> Significant data degradation detected.</p>
-          <p>&gt; Estimated data corruption: <span className="text-cyberpunk-primary">{corruptionLevel.toFixed(2)}%</span></p>
-          <p>&gt; Cause: Suspected spontaneous entropy spike (or maybe cosmic rays?).</p>
-          <p>&gt; Recommendation: Apply percussive maintenance? <span className="text-gray-500">(Probably not.)</span></p>
-          <p>&gt; Stand by for neural uplink... or just check back later.</p>
+        {/* Terminal Header */}
+        <div className="terminal-header">
+          <span className="terminal-button bg-red-500"></span>
+          <span className="terminal-button bg-yellow-500"></span>
+          <span className="terminal-button bg-green-500"></span>
+          <span className="ml-auto text-xs text-gray-400">/dev/null &gt; bitrot.sh</span>
         </div>
 
-        {/* Social links */}
-        <div className="flex justify-center gap-6 border-t-2 border-cyberpunk-primary pt-6 mt-8">
-          <motion.a
-            whileHover={{ scale: 1.2, color: '#00ffff' }}
-            href="https://github.com"
-            target="_blank" rel="noopener noreferrer"
-            className="text-cyberpunk-primary transition-colors duration-300"
-            aria-label="GitHub"
-          >
-            <FaGithub size={28} />
-          </motion.a>
-          <motion.a
-            whileHover={{ scale: 1.2, color: '#00ffff' }}
-            href="https://twitter.com"
-            target="_blank" rel="noopener noreferrer"
-            className="text-cyberpunk-primary transition-colors duration-300"
-            aria-label="Twitter"
-          >
-            <FaTwitter size={28} />
-          </motion.a>
-          <motion.a
-            whileHover={{ scale: 1.2, color: '#00ffff' }}
-            href="https://linkedin.com"
-            target="_blank" rel="noopener noreferrer"
-            className="text-cyberpunk-primary transition-colors duration-300"
-            aria-label="LinkedIn"
-          >
-            <FaLinkedin size={28} />
-          </motion.a>
-        </div>
-        
-        <p className="text-xs text-gray-500 mt-8">Initializing full site... ETA: [REDACTED]</p>
+        {/* Terminal Content */}
+        <div className="p-6 md:p-8">
+          {/* ASCII Art */}
+          <AsciiGlitch />
 
+          <p className="text-center text-lg md:text-xl text-cyberpunk-accent mb-4 status-line animate-flicker">
+            // SYSTEM STATUS: <span className="text-red-500 font-bold">DATA CORRUPTION DETECTED</span> //
+          </p>
+
+          <div className="font-mono text-xs md:text-sm space-y-1 mb-6 bg-black bg-opacity-20 p-4 rounded border border-cyberpunk-primary/30">
+            <p>&gt; Initializing connection to <GlitchText text="bitrot.sh" className="text-cyberpunk-secondary" interval={80} />...</p>
+            <p>&gt; <span className="text-yellow-400">WARN:</span> Packet loss significant. Integrity compromised.</p>
+            <p>&gt; Calculating data decay rate...</p>
+            <p>&gt; Estimated corruption: <span className="text-cyberpunk-primary font-bold">{corruptionLevel.toFixed(2)}%</span> <span className="text-gray-500">(Increasing...)</span></p>
+            <p>&gt; Signal source: Unknown. Possibly a rogue AI playing Pong?</p>
+            <p>&gt; <span className="text-cyan-400">INFO:</span> Full site reconstruction pending. Please wait.</p>
+            <p>&gt; Do not attempt to adjust your monitor. We control the vertical and the horizontal.</p>
+          </div>
+
+          {/* Social links */}
+          <div className="flex justify-center items-center gap-6 md:gap-8 border-t border-cyberpunk-primary/50 pt-5 mt-6">
+            <span className="text-xs text-gray-400">// Connect:</span>
+            <motion.a
+              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
+              href="https://github.com"
+              target="_blank" rel="noopener noreferrer"
+              className="text-cyberpunk-primary transition-all duration-200"
+              aria-label="GitHub"
+            >
+              <FaGithub size={24} />
+            </motion.a>
+            <motion.a
+              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
+              href="https://twitter.com"
+              target="_blank" rel="noopener noreferrer"
+              className="text-cyberpunk-primary transition-all duration-200"
+              aria-label="Twitter"
+            >
+              <FaTwitter size={24} />
+            </motion.a>
+            <motion.a
+              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
+              href="https://linkedin.com"
+              target="_blank" rel="noopener noreferrer"
+              className="text-cyberpunk-primary transition-all duration-200"
+              aria-label="LinkedIn"
+            >
+              <FaLinkedin size={24} />
+            </motion.a>
+          </div>
+
+          <p className="text-center text-xs text-gray-600 mt-6 animate-flicker">ETA: When it's done™</p>
+        </div>
       </motion.div>
-      
-      {/* Decorative corners */}
-      <div className="absolute top-2 left-2 w-8 h-8 border-t-2 border-l-2 border-cyberpunk-secondary opacity-70"></div>
-      <div className="absolute top-2 right-2 w-8 h-8 border-t-2 border-r-2 border-cyberpunk-secondary opacity-70"></div>
-      <div className="absolute bottom-2 left-2 w-8 h-8 border-b-2 border-l-2 border-cyberpunk-secondary opacity-70"></div>
-      <div className="absolute bottom-2 right-2 w-8 h-8 border-b-2 border-r-2 border-cyberpunk-secondary opacity-70"></div>
+
+      {/* Removed old decorative corners as they are part of the terminal style now */}
     </div>
   );
 }
