@@ -45,13 +45,14 @@ const GlitchText = ({ text, interval = 50, className = '' }) => {
 
 // ASCII Art Component (Simple Example)
 const AsciiGlitch = () => {
+  // User-provided BITROT art
   const art = [
-    '███╗   ███╗███████╗ ██████╗ ██╗   ██╗███████╗████████╗',
-    '████╗ ████║██╔════╝██╔════╝ ██║   ██║██╔════╝╚══██╔══╝',
-    '██╔████╔██║███████╗██║  ███╗██║   ██║███████╗   ██║   ',
-    '██║╚██╔╝██║╚════██║██║   ██║██║   ██║╚════██║   ██║   ',
-    '██║ ╚═╝ ██║███████║╚██████╔╝╚██████╔╝███████║   ██║   ',
-    '╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚══════╝   ╚═╝   ',
+    '██████╗     ██╗      ███████╗   ██████╗     ██████╗    ███████╗ ',
+    '██╔══██╗    ██║      ╚══███╔╝   ██╔══██╗   ██╔═████╗   ╚══███╔╝ ',
+    '██████╔╝    ██║        ██╔╝     ██████╔╝   ██║██╔██║     ██╔╝   ',
+    '██╔══██╗    ██║        ██║      ██╔══██╗   ████╔╝██║     ██║    ',
+    '██████╔╝    ██║        ██║      ██║  ██║   ╚██████╔╝     ██║    ',
+    '╚═════╝     ╚═╝        ╚═╝      ╚═╝  ╚═╝    ╚═════╝      ╚═╝    '
   ];
   const [glitchedArt, setGlitchedArt] = useState(art.join('\n'));
 
@@ -61,16 +62,18 @@ const AsciiGlitch = () => {
       for (const line of art) {
         let newLine = '';
         for (let char of line) {
+          // Keep previous glitch effect settings
           newLine += Math.random() < 0.005 ? getRandomChar() : char;
         }
         newArt += newLine + '\n';
       }
       setGlitchedArt(newArt);
-    }, 100);
+    }, 100); // Keep previous glitch interval
     return () => clearInterval(intervalId);
   }, []);
 
-  return <pre className="text-cyberpunk-primary text-xs md:text-sm leading-tight text-center opacity-80 mb-6">{glitchedArt}</pre>;
+  // Keep font-mono for better alignment
+  return <pre className="text-cyberpunk-primary text-xs md:text-sm leading-tight text-center opacity-80 mb-6 font-mono">{glitchedArt}</pre>;
 }
 
 function App() {
