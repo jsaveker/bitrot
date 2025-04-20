@@ -14,9 +14,20 @@ const COLORS = {
   GREY: '\x1b[38;5;244m',
 };
 
-// --- ASCII Art Definitions (Array of Lines with escaped backslashes) ---
-const ASCII_ART = {
-  cow: [\n    '        \\\\\\\\   ^__^',\n    '         \\\\\\\\  (oo)\\\\\\\\_______',\n    '            (__)\\\\\\\\       )\\\\\\\\/\\\\\\\\ ',\n    '                ||----w |',\n    '                ||     ||'\n  ],\n  doge: [\n    '             .--~~, __.',\n    ':-.__.\\\\'; \\\\\\\\:, \\\\'\\\\\\\\´\\\\'_.\\\\_.)         wow',\n    ' \\\\`--,; \\\\ B-\\\\`.\\\\\',-~-;\\\\`',\n    '   \\\\' U \\\\'        \\\\\\\\`\\\\\\\\`~\\\\'',\n    '        \\\\\\\\_;        ;',\n    '         |         ;',\n    '        :         :',\n    '        |####|    |',\n    '    _.--\\\\'####\\\\'--./\\\\\\\\',\n    '  .\\\\'; | \\\\|\\\\ | / |/',\n    '  |\\\\ || | \\\\' |\\\\ ||/',\n    '   \\\\`- | \\\\`-\\\\\'/\\\\ |\\\\      such terminal',\n    '    \\\\ \\\\`\\\\\'-;-;    :/',\n    '     \\\\ ___    _/',\n    '      //    ||',\n    '     //     ||',\n    '    | \\\\\\\\    )//            much art',\n    '    |  \\\\\\\\_ //\\\\' ',\n    '    | \\\\___ /',\n    '    \\\\ \\\\`--- \\\\'',\n    '     \\`------\\\\''\n  ],\n  parrot: [\n    '          .--.',\n    '         / /\\\\ \\\\\\\\\\',\n    '        ( (__) )',\n    '         \\\\\\\\ \\\\/ /',\n    '          \\`--\\'',\n    '         / \\\"\\\" \\\\\\\\\\',\n    '        / _.._ \\\\\\\\\\',\n    '       / / .. \\\\ \\\\\\\\\\',\n    '      ( ( \\\\'\\\\' ) )',\n    '       \\\\\\\\ \\__/ /',\n    '        \\`----\\'  Squawk! Party time!'\n  ],\n};\n
+// Helper function to fetch and display ASCII art
+const displayAsciiArt = async (term, filename) => {
+  try {
+    const response = await fetch(`/ascii/${filename}.txt`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const art = await response.text();
+    term.writeln('\r\n' + art.replace(/\n/g, '\r\n')); // Ensure CRLF for terminal
+  } catch (error) {
+    console.error(`Error fetching ASCII art ${filename}:`, error);
+    term.writeln(`${COLORS.RED}Error: Could not load ASCII art \"${filename}\".${COLORS.RESET}`);
+  }
+};
 
 // Command definitions
 const COMMANDS = {
@@ -116,22 +127,22 @@ const COMMANDS = {
   cow: {
     description: 'Summon an ASCII cow.',
     usage: 'cow',
-    handler: (term) => {
-      term.writeln('\r\n' + ASCII_ART.cow.join('\r\n')); // Join lines with CRLF
+    handler: async (term) => {
+      await displayAsciiArt(term, 'cow');
     },
   },
   doge: {
     description: 'Such wow. Much terminal.',
     usage: 'doge',
-    handler: (term) => {
-      term.writeln('\r\n' + ASCII_ART.doge.join('\r\n'));
+    handler: async (term) => {
+      await displayAsciiArt(term, 'doge');
     },
   },
   parrot: {
     description: 'Party time!',
     usage: 'parrot',
-    handler: (term) => {
-      term.writeln('\r\n' + ASCII_ART.parrot.join('\r\n'));
+    handler: async (term) => {
+      await displayAsciiArt(term, 'parrot');
     },
   },
   matrix: {
@@ -225,7 +236,7 @@ function Terminal() {
     }
   };
 
-  const handleCommand = (term, commandLine) => {
+  const handleCommand = async (term, commandLine) => {
     const parts = commandLine.trim().split(' ').filter(part => part !== '');
     const commandName = parts[0];
     const args = parts.slice(1);
@@ -238,12 +249,15 @@ function Terminal() {
     const command = COMMANDS[commandName];
 
     if (command) {
-      command.handler(term, args);
+      await command.handler(term, args);
     } else {
       term.writeln(`${COLORS.RED}Command not found:${COLORS.RESET} ${commandName}`);
       term.writeln(`Type ${COLORS.CYBER_ACCENT}'help'${COLORS.RESET} for available commands.`);
     }
-    prompt();
+    
+    if (commandName !== 'matrix' && commandName !== 'exit') {
+         prompt();
+    }
   };
 
   // Function to reset the idle timer
@@ -319,12 +333,19 @@ function Terminal() {
         const code = e.charCodeAt(0);
         if (code === 13) { // Enter
             term.write('\r\n'); // Move cursor to new line
-            if (lineBuffer.trim()) {
-              handleCommand(term, lineBuffer);
+            const trimmedLine = lineBuffer.trim();
+            lineBuffer = ''; // Clear buffer immediately
+
+            if (trimmedLine) {
+              // Call the async command handler and catch potential errors
+              handleCommand(term, trimmedLine).catch(err => {
+                  console.error("Error processing command:", err);
+                  term.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
+                  prompt(); // Ensure prompt is shown after error
+              }); 
             } else {
               prompt(); // Show prompt again if only Enter was pressed
             }
-            lineBuffer = ''; // Reset buffer
         } else if (code === 127) { // Backspace
           if (lineBuffer.length > 0) {
             term.write('\b \b'); // Move cursor back, write space, move back again
