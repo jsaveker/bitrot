@@ -25,26 +25,17 @@ const availableLessons = [
     { id: '2-backups', title: 'Backups - The Ultimate Defense' },
 ];
 
-// This function now ONLY handles requests to /lessons
+// This function handles requests to /lessons ONLY.
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-    const { request, params } = context;
-    // Check if there are any path segments. The route is [[path]].ts, so 
-    // params.path will exist if the path is not exactly /lessons
-    const pathSegments = params.path;
-
-    if (pathSegments && pathSegments.length > 0) {
-        // Any path other than /lessons is invalid for this function now
-        return errorResponse('Invalid request path. Use /lessons to list topics.', 400);
-    } else {
-        // List available lessons (path is exactly /lessons)
-        console.log('Request to list lessons.');
-        return new Response(JSON.stringify(availableLessons), {
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
+    // Since this file is functions/lessons.ts, it only matches /lessons.
+    // No need to check params.path anymore.
+    console.log('Request to list lessons.');
+    return new Response(JSON.stringify(availableLessons), {
+        headers: { 'Content-Type': 'application/json' },
+    });
 };
 
-// Optional: Add onRequestPost or others if needed, returning 405 Method Not Allowed
+// Keep the 405 for other methods like POST
 export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Method Not Allowed', 405);
 }; 
