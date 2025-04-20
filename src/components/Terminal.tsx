@@ -31,10 +31,9 @@ const displayAsciiArt = async (term: Xterm, filename: string) => {
 
 // Types
 interface UploadTrigger { triggerUpload: () => void; }
-// Define CommandContext based on potential needs
+// Add writePrompt to the context
 interface CommandContext extends Partial<UploadTrigger> { 
-    // Add other context properties here if needed by other commands
-    // Example: userId?: string;
+    writePrompt?: () => void;
 }
 
 // Type for command handlers
@@ -92,9 +91,9 @@ const COMMANDS: CommandMap = {
   list: {
     description: 'List your decaying files.',
     usage: 'list',
-    handler: async (term: Xterm) => {
+    handler: async (term: Xterm, args: string[], context?: CommandContext) => {
       term.writeln(`Fetching file list from the lab archive...`);
-      prompt();
+      context?.writePrompt?.();
 
       try {
         const response = await fetch('/list'); 
@@ -127,7 +126,7 @@ const COMMANDS: CommandMap = {
          term.writeln(`${COLORS.RED}Error fetching file list:${COLORS.RESET}`);
          term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
-         prompt();
+         context?.writePrompt?.();
       }
     },
   },
@@ -215,7 +214,7 @@ const COMMANDS: CommandMap = {
   matrix: {
     description: 'Enter the matrix.',
     usage: 'matrix',
-    handler: (term: Xterm) => {
+    handler: (term: Xterm, args: string[], context?: CommandContext) => {
       term.clear();
       let intervalId: NodeJS.Timeout | null = null;
       let keyListener: IDisposable | null = null;
@@ -275,7 +274,7 @@ const COMMANDS: CommandMap = {
         keyListener?.dispose();
         term.clear();
         term.write('\x1b[?25h'); // Show cursor
-        prompt(); // Show prompt again
+        context?.writePrompt?.();
       };
       
       term.write('\x1b[?25l'); // Hide cursor
@@ -298,7 +297,8 @@ function Terminal() {
   const [isIdle, setIsIdle] = useState(false);
   const idleTimer = useRef<NodeJS.Timeout | null>(null); // Added type for timer
 
-  const prompt = () => {
+  // Renamed function for writing the terminal prompt
+  const writePrompt = () => {
     if (xtermInstance.current) {
         xtermInstance.current.write(`\r\n${COLORS.CYBER_GREEN}$${COLORS.RESET} `);
     }
@@ -309,7 +309,7 @@ function Terminal() {
     fileInputRef.current?.click();
   };
 
-  // Async function to handle the actual file upload
+  // Fix remaining type error in handleFileUpload
   const handleFileUpload = async (file: File) => {
     const term = xtermInstance.current;
     if (!term || !file) {
@@ -318,33 +318,37 @@ function Terminal() {
     }
 
     term.writeln(`${COLORS.YELLOW}Uploading "${file.name}" (${(file.size / 1024).toFixed(2)} KB)...${COLORS.RESET}`);
-    prompt(); // Show prompt immediately after starting upload
+    writePrompt();
 
     const formData = new FormData();
-    formData.append('file', file); // Key must match backend ('file')
+    formData.append('file', file);
 
     try {
-      const response = await fetch('/upload', { // Relative path to the function
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
+      const response = await fetch('/upload', { method: 'POST', body: formData });
+      const result: unknown = await response.json();
 
       if (!response.ok) {
-        // Throw error to be caught below, using message from backend if available
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        // Check if result is an object with an error property before asserting
+        const errorResult = result as ErrorResponse; // Cast to potential error type
+        const errorMsg = (typeof errorResult === 'object' && errorResult !== null && 'error' in errorResult) 
+                           ? errorResult.error 
+                           : `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg); 
       }
 
-      // Success
-      term.write('\r\n'); // Newline before success message
-      term.writeln(`${COLORS.CYBER_GREEN}Success!${COLORS.RESET} File "${result.filename}" uploaded.`);
-      term.writeln(`Assigned ID: ${COLORS.CYBER_ACCENT}${result.fileId}${COLORS.RESET}`);
-      term.writeln(`Type ${COLORS.YELLOW}'list'${COLORS.RESET} to see your files (TODO).`);
-
+      // Check if result is an object with expected properties before asserting
+      if (typeof result === 'object' && result !== null && 'filename' in result && 'fileId' in result) {
+          const successResult = result as { filename: string; fileId: string }; 
+          term.write('\r\n');
+          term.writeln(`${COLORS.CYBER_GREEN}Success!${COLORS.RESET} File "${successResult.filename}" uploaded.`);
+          term.writeln(`Assigned ID: ${COLORS.CYBER_ACCENT}${successResult.fileId}${COLORS.RESET}`);
+          term.writeln(`Type ${COLORS.YELLOW}'list'${COLORS.RESET} to see your files (TODO).`);
+      } else {
+          throw new Error('Received unexpected success response format from upload.');
+      }
     } catch (error) {
       console.error("Upload fetch error:", error);
-      term.write('\r\n'); // Newline before error message
+      term.write('\r\n');
       term.writeln(`${COLORS.RED}Upload failed for "${file.name}":${COLORS.RESET}`);
       term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -352,41 +356,39 @@ function Terminal() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-        // Write a new prompt line after completion/error
-        prompt();
+        writePrompt();
     }
   };
 
-  // Command handler (passing triggerUpload)
+  // Pass writePrompt in context
   const handleCommand = async (term: Xterm, commandLine: string) => {
     const parts = commandLine.trim().split(' ').filter(part => part !== '');
     const commandName = parts[0];
     const args = parts.slice(1);
 
     if (!commandName) {
-      prompt();
+      writePrompt();
       return;
     }
 
     const command = COMMANDS[commandName];
 
     if (command) {
-      const context: Partial<CommandContext> = { triggerUpload };
+      const context: CommandContext = { triggerUpload, writePrompt };
       await command.handler(term, args, context);
     } else {
       term.writeln(`${COLORS.RED}Command not found:${COLORS.RESET} ${commandName}`);
       term.writeln(`Type ${COLORS.CYBER_ACCENT}'help'${COLORS.RESET} for available commands.`);
-      prompt(); // Show prompt immediately for unknown command
+      writePrompt();
     }
-
-    // Commands now handle their own prompting after async ops or during interaction
-    // So, no default prompt call here anymore unless it was an unknown command.
   };
 
-  // Function to reset the idle timer
+  // Add null check for clearTimeout
   const resetIdleTimer = () => {
     setIsIdle(false);
-    clearTimeout(idleTimer.current);
+    if (idleTimer.current) {
+        clearTimeout(idleTimer.current);
+    }
     idleTimer.current = setTimeout(() => {
         setIsIdle(true);
         if (xtermInstance.current) {
@@ -447,7 +449,7 @@ function Terminal() {
       term.writeln(`${COLORS.CYBER_GREEN}Welcome to the Bit Rot Laboratory!${COLORS.RESET}`);
       term.writeln(`Initializing ${COLORS.YELLOW}data decay${COLORS.RESET} simulation environment...`);
       term.writeln(`Type ${COLORS.CYBER_ACCENT}'help'${COLORS.RESET} for available commands.`);
-      prompt(); // Initial prompt
+      writePrompt();
 
       // --- Input Handling Logic with Idle Reset ---
       let lineBuffer = '';
@@ -456,7 +458,7 @@ function Terminal() {
 
         const code = e.charCodeAt(0);
         if (code === 13) { // Enter
-            term.write('\r\n'); // Move cursor to new line
+            if (term) term.write('\r\n'); // Add null check
             const trimmedLine = lineBuffer.trim();
             lineBuffer = ''; // Clear buffer immediately
 
@@ -465,21 +467,21 @@ function Terminal() {
               if (term) {
                 handleCommand(term, trimmedLine).catch(err => {
                     console.error("Error processing command:", err);
-                    term.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
-                    prompt(); // Ensure prompt is shown after error
+                    if (term) term.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
+                    writePrompt();
                 }); 
               }
             } else {
-              prompt(); // Show prompt again if only Enter was pressed
+              writePrompt(); // Show prompt again if only Enter was pressed
             }
         } else if (code === 127) { // Backspace
           if (lineBuffer.length > 0) {
-            term.write('\b \b'); // Move cursor back, write space, move back again
+            if (term) term.write('\b \b'); // Move cursor back, write space, move back again
             lineBuffer = lineBuffer.slice(0, -1);
           }
         } else if (code >= 32 && code <= 126) { // Printable
           lineBuffer += e;
-          term.write(e); // Echo character
+          if (term) term.write(e); // Add null check
         }
         // Ignore other control characters for now
       });
@@ -493,7 +495,7 @@ function Terminal() {
           } else {
               // Optional: Handle case where user cancels file dialog
               xtermInstance.current?.writeln("File selection cancelled.");
-              prompt();
+              writePrompt();
           }
       };
 
@@ -513,7 +515,7 @@ function Terminal() {
 
       // --- Cleanup ---
       return () => {
-        clearTimeout(idleTimer.current as NodeJS.Timeout); 
+        if (idleTimer.current) clearTimeout(idleTimer.current);
         window.removeEventListener('resize', handleResize);
         dataListener.dispose();
         if (currentFileInput) {
