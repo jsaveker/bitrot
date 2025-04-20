@@ -40,7 +40,7 @@ const GlitchText = ({ text, interval = 50, className = '' }) => {
     };
   }, [text, interval]);
 
-  return <span className={className}>{glitchedText}</span>;
+  return <span className={`inline-block ${className}`}>{glitchedText}</span>;
 };
 
 // ASCII Art Component (Simple Example)
@@ -84,7 +84,7 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen relative animate-background-pan p-4 flex items-center justify-center">
+    <div className="min-h-screen relative animate-background-pan p-4 flex items-center justify-center text-cyberpunk-primary">
       <div className="scanline"></div>
 
       {/* Main terminal window */}
@@ -92,7 +92,7 @@ function App() {
         initial={{ opacity: 0, y: 50, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
-        className="terminal-window w-full max-w-4xl " // Adjusted max-width
+        className="terminal-window w-full max-w-4xl text-cyberpunk-primary"
       >
         {/* Terminal Header */}
         <div className="terminal-header">
@@ -111,17 +111,18 @@ function App() {
             // SYSTEM STATUS: <span className="text-red-500 font-bold">DATA CORRUPTION DETECTED</span> //
           </p>
 
-          <div className="font-mono text-xs md:text-sm space-y-1 mb-6 bg-black bg-opacity-20 p-4 rounded border border-cyberpunk-primary/30">
-            <p>&gt; Initializing connection to <GlitchText text="bitrot.sh" className="text-cyberpunk-secondary" interval={80} />...</p>
+          <div className="font-mono text-xs md:text-sm space-y-1 mb-6 bg-black bg-opacity-20 p-4 rounded border border-cyberpunk-primary/30 text-cyberpunk-primary">
+            <p>&gt; Initializing connection to <GlitchText text="bitrot.sh" className="text-cyberpunk-secondary font-bold" interval={80} />...</p>
             <p>&gt; <span className="text-yellow-400">WARN:</span> Packet loss significant. Integrity compromised.</p>
             <p>&gt; Calculating data decay rate...</p>
-            <p>&gt; Estimated corruption: <span className="text-cyberpunk-primary font-bold">{corruptionLevel.toFixed(2)}%</span> <span className="text-gray-500">(Increasing...)</span></p>
+            <p>&gt; Estimated corruption: <span className="text-green-400 font-bold">{corruptionLevel.toFixed(2)}%</span> <span className="text-gray-500">(Increasing...)</span></p>
             <p>&gt; Signal source: Unknown. Possibly a rogue AI playing Pong?</p>
             <p>&gt; <span className="text-cyan-400">INFO:</span> Full site reconstruction pending. Please wait.</p>
             <p>&gt; Do not attempt to adjust your monitor. We control the vertical and the horizontal.</p>
           </div>
 
-          {/* Social links */}
+          {/* Social links - REMOVED */}
+          {/* 
           <div className="flex justify-center items-center gap-6 md:gap-8 border-t border-cyberpunk-primary/50 pt-5 mt-6">
             <span className="text-xs text-gray-400">// Connect:</span>
             <motion.a
@@ -152,8 +153,9 @@ function App() {
               <FaLinkedin size={24} />
             </motion.a>
           </div>
+          */}
 
-          <p className="text-center text-xs text-gray-600 mt-6 animate-flicker">ETA: When it's done™</p>
+          <p className="text-center text-xs text-green-700 mt-6 animate-flicker">ETA: When it's done™</p>
         </div>
       </motion.div>
 
