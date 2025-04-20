@@ -303,10 +303,45 @@ const COMMANDS: CommandMap = {
     },
   },
   freeze: {
-    description: 'Halt decay for a file (TODO).',
+    description: 'Halt decay for a file.',
     usage: 'freeze <id>',
-    handler: (term: Xterm, args: string[]) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement freeze for: ${args.join(' ')}${COLORS.RESET}`);
+    handler: async (term: Xterm, args: string[], context?: CommandContext) => {
+        const fileId = args[0];
+
+        if (!fileId) {
+            term.writeln(`${COLORS.RED}Usage: ${COMMANDS.freeze.usage}${COLORS.RESET}`);
+            context?.writePrompt?.();
+            return;
+        }
+
+        const url = `/freeze?id=${encodeURIComponent(fileId)}`;
+
+        term.writeln(`Requesting freeze for file ID: ${fileId}...`);
+        context?.writePrompt?.();
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+            });
+            
+            const result: { message?: string; error?: string; fileId?: string } = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result?.error || `HTTP error! Status: ${response.status}`);
+            }
+
+            term.write('\r\n');
+            term.writeln(`${COLORS.CYBER_GREEN}${result.message || 'Operation successful.'}${COLORS.RESET}`);
+            term.writeln(`(File ${fileId} is now protected from further decay)`);
+
+        } catch (error) {
+            console.error("Freeze error:", error);
+            term.write('\r\n');
+            term.writeln(`${COLORS.RED}Error freezing file ${fileId}:${COLORS.RESET}`);
+            term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            context?.writePrompt?.();
+        }
     },
   },
   lessons: {
