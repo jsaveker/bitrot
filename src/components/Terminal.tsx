@@ -362,21 +362,18 @@ const COMMANDS: CommandMap = {
     description: 'Read data integrity mini-tutorials.',
     usage: 'lessons [list | <lesson-id>]',
     handler: async (term: Xterm, args: string[], context?: CommandContext) => {
-        const subCommand = args[0] || 'list'; // Default to list
+        const subCommand = args[0] || 'list'; 
 
         if (subCommand === 'list') {
             term.writeln('Fetching available lessons...');
             context?.writePrompt?.();
             try {
                 const response = await fetch('/lessons');
-                const lessons: LessonInfo[] = await response.json(); // Parse JSON directly
-                
+                const lessons: LessonInfo[] = await response.json();
                 if (!response.ok) {
-                    // Assume error structure if not ok, or throw generic HTTP error
                     const errorMsg = (lessons as any)?.error || `HTTP Error: ${response.status}`;
                     throw new Error(errorMsg);
                 }
-                
                 term.write('\r\nAvailable Lessons:\r\n');
                 if (!lessons || lessons.length === 0) {
                     term.writeln('  (No lessons found)');
@@ -397,19 +394,32 @@ const COMMANDS: CommandMap = {
         } else {
             // Fetch and display specific lesson content
             const lessonId = subCommand;
-            term.writeln(`Fetching lesson \"${lessonId}\"...`);
+            term.writeln(`Fetching lesson "${lessonId}"...`);
             context?.writePrompt?.();
             try {
-                const response = await fetch(`/lessons/${encodeURIComponent(lessonId)}`);
-                const content = await response.text(); // Get raw text
-                if (!response.ok) {
-                    let errorMsg = `HTTP Error: ${response.status}`;
-                    try { errorMsg = JSON.parse(content).error || errorMsg; } catch (e) { /* ignore */ }
-                    throw new Error(errorMsg);
+                // 1. Validate the ID first by fetching the list
+                const listResponse = await fetch('/lessons');
+                const availableLessons: LessonInfo[] = await listResponse.json();
+                if (!listResponse.ok) {
+                     throw new Error('Failed to fetch lesson list for validation.');
+                }
+                const lessonExists = availableLessons.some(l => l.id === lessonId);
+                if (!lessonExists) {
+                    throw new Error(`Lesson ID not found: ${lessonId}`);
                 }
 
-                term.write('\r\n---\r\n'); // Separator
-                // Write content line by line, ensuring CRLF
+                // 2. Fetch the static text file directly
+                const lessonPath = `/lessons/${encodeURIComponent(lessonId)}.txt`;
+                console.log("Attempting to fetch static lesson content:", lessonPath)
+                const contentResponse = await fetch(lessonPath);
+                const content = await contentResponse.text(); // Get raw text
+                
+                if (!contentResponse.ok) {
+                    // If fetch fails here, the file might be missing from /public
+                    throw new Error(`Could not load lesson content (HTTP ${contentResponse.status})`);
+                }
+
+                term.write('\r\n---\r\n');
                 content.split('\n').forEach(line => term.writeln(line));
                 term.writeln('---');
             } catch (error) {

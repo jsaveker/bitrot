@@ -25,52 +25,26 @@ const availableLessons = [
     { id: '2-backups', title: 'Backups - The Ultimate Defense' },
 ];
 
-// Handle GET requests to /lessons or /lessons/[lesson-id]
+// This function now ONLY handles requests to /lessons
 export const onRequestGet: PagesFunction<Env> = async (context) => {
     const { request, params } = context;
-    const pathSegments = params.path || [];
+    // Check if there are any path segments. The route is [[path]].ts, so 
+    // params.path will exist if the path is not exactly /lessons
+    const pathSegments = params.path;
 
-    if (pathSegments.length === 0) {
-        // List available lessons
+    if (pathSegments && pathSegments.length > 0) {
+        // Any path other than /lessons is invalid for this function now
+        return errorResponse('Invalid request path. Use /lessons to list topics.', 400);
+    } else {
+        // List available lessons (path is exactly /lessons)
         console.log('Request to list lessons.');
         return new Response(JSON.stringify(availableLessons), {
             headers: { 'Content-Type': 'application/json' },
         });
-    } else if (pathSegments.length === 1) {
-        // Fetch specific lesson
-        const lessonId = pathSegments[0];
-        console.log(`Request for lesson: ${lessonId}`);
-
-        // Find the lesson in our hardcoded list
-        const lessonInfo = availableLessons.find(l => l.id === lessonId);
-        if (!lessonInfo) {
-            return errorResponse(`Lesson not found: ${lessonId}`, 404);
-        }
-
-        try {
-            // Construct the URL to the static text file in /public
-            const lessonUrl = new URL(`/lessons/${lessonId}.txt`, request.url);
-            console.log(`Fetching lesson content from: ${lessonUrl.pathname}`);
-
-            // Use fetch to get the static asset content via the Pages deployment
-            const response = await fetch(lessonUrl.toString());
-
-            if (!response.ok) {
-                console.error(`Failed to fetch lesson ${lessonId}.txt: Status ${response.status}`);
-                return errorResponse(`Could not load lesson content for: ${lessonId}`, 500);
-            }
-
-            // Return the plain text content
-            const lessonContent = await response.text();
-            return new Response(lessonContent, {
-                headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-            });
-
-        } catch (e) {
-            console.error(`Error fetching lesson ${lessonId}:`, e);
-            return errorResponse('Failed to retrieve lesson content due to an unknown error', 500);
-        }
-    } else {
-        return errorResponse('Invalid request path. Use /lessons or /lessons/[lesson-id]', 400);
     }
+};
+
+// Optional: Add onRequestPost or others if needed, returning 405 Method Not Allowed
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+    return errorResponse('Method Not Allowed', 405);
 }; 
