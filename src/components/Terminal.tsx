@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as Xterm } from 'xterm';
+import { Terminal as Xterm, ITerminalOptions, IDisposable } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css'; // Import xterm styles
 import './Terminal.css'; // Add import for Terminal-specific CSS
@@ -15,7 +15,7 @@ const COLORS = {
 };
 
 // Helper function to fetch and display ASCII art
-const displayAsciiArt = async (term, filename) => {
+const displayAsciiArt = async (term: Xterm, filename: string) => {
   try {
     const response = await fetch(`/ascii/${filename}.txt`);
     if (!response.ok) {
@@ -25,16 +25,49 @@ const displayAsciiArt = async (term, filename) => {
     term.writeln('\r\n' + art.replace(/\n/g, '\r\n')); // Ensure CRLF for terminal
   } catch (error) {
     console.error(`Error fetching ASCII art ${filename}:`, error);
-    term.writeln(`${COLORS.RED}Error: Could not load ASCII art \"${filename}\".${COLORS.RESET}`);
+    term.writeln(`${COLORS.RED}Error: Could not load ASCII art "${filename}".${COLORS.RESET}`);
   }
 };
 
-// Command definitions
-const COMMANDS = {
+// Types
+interface UploadTrigger { triggerUpload: () => void; }
+// Define CommandContext based on potential needs
+interface CommandContext extends Partial<UploadTrigger> { 
+    // Add other context properties here if needed by other commands
+    // Example: userId?: string;
+}
+
+// Type for command handlers
+type CommandHandler = (term: Xterm, args: string[], context?: CommandContext) => Promise<void> | void;
+
+// Command definitions structure (adding index signature)
+interface CommandMap {
+    [key: string]: {
+        description: string;
+        usage: string;
+        handler: CommandHandler;
+    }
+}
+
+// Re-define FileMetadata here for frontend use
+interface FileMetadata {
+    id: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    createdAt: string;
+}
+
+// Type for backend error response
+interface ErrorResponse {
+    error: string;
+}
+
+const COMMANDS: CommandMap = {
   help: {
     description: 'Show this list of commands.',
     usage: 'help',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.writeln('Available commands:');
       Object.entries(COMMANDS).forEach(([name, { usage, description }]) => {
         term.writeln(`  ${COLORS.CYBER_ACCENT}${usage.padEnd(15)}${COLORS.RESET} ${description}`);
@@ -44,51 +77,85 @@ const COMMANDS = {
   clear: {
     description: 'Clear the terminal screen.',
     usage: 'clear',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.clear();
     },
   },
-  // --- Add more commands here later ---
   upload: {
     description: 'Upload a file via dialog to the decay chamber.',
-    usage: 'upload', // Simplified usage, ignore args for now
-    handler: (term, args, { triggerUpload }) => { // Added triggerUpload callback
+    usage: 'upload',
+    handler: (term: Xterm, args: string[], context?: Partial<CommandContext>) => {
       term.writeln(`Initiating file upload... Please select a file.`);
-      triggerUpload(); // Call the function passed from the component
+      context?.triggerUpload?.();
     },
   },
   list: {
-    description: 'List your decaying files (TODO).',
+    description: 'List your decaying files.',
     usage: 'list',
-    handler: (term) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement file listing.${COLORS.RESET}`);
+    handler: async (term: Xterm) => {
+      term.writeln(`Fetching file list from the lab archive...`);
+      prompt();
+
+      try {
+        const response = await fetch('/list'); 
+        const result: unknown = await response.json();
+
+        if (!response.ok) {
+           const errorMsg = (typeof result === 'object' && result !== null && 'error' in result) 
+                              ? (result as ErrorResponse).error 
+                              : `HTTP error! status: ${response.status}`;
+           throw new Error(errorMsg); 
+        }
+
+        const files = result as FileMetadata[];
+        term.write('\r\n');
+        if (files.length === 0) {
+            term.writeln('No files found in the decay chamber.');
+        } else {
+            term.writeln(`Found ${files.length} file(s):`);
+            term.writeln(`  ${COLORS.CYBER_ACCENT}ID${COLORS.RESET}                                       ${COLORS.CYBER_ACCENT}Filename${COLORS.RESET}             ${COLORS.CYBER_ACCENT}Size${COLORS.RESET}      ${COLORS.CYBER_ACCENT}Created${COLORS.RESET}`);
+            term.writeln(`  ------------------------------------   --------------------   --------   ----------------------------`);
+            files.forEach(file => {
+                const createdDate = new Date(file.createdAt).toLocaleString();
+                const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+                term.writeln(`  ${file.id.padEnd(36)}   ${file.filename.substring(0, 18).padEnd(20)}   ${fileSize.padStart(8)}   ${createdDate}`);
+            });
+        }
+      } catch (error) {
+         console.error("List fetch error:", error);
+         term.write('\r\n');
+         term.writeln(`${COLORS.RED}Error fetching file list:${COLORS.RESET}`);
+         term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+         prompt();
+      }
     },
   },
   view: {
     description: 'View a specific decay level of a file (TODO).',
     usage: 'view <id> [level]',
-    handler: (term, args) => {
+    handler: (term: Xterm, args: string[]) => {
       term.writeln(`${COLORS.YELLOW}TODO: Implement file view for: ${args.join(' ')}${COLORS.RESET}`);
     },
   },
   rot: {
     description: 'Trigger on-demand decay (TODO).',
     usage: 'rot <id> --level N [--mode M]',
-    handler: (term, args) => {
+    handler: (term: Xterm, args: string[]) => {
       term.writeln(`${COLORS.YELLOW}TODO: Implement on-demand rot for: ${args.join(' ')}${COLORS.RESET}`);
     },
   },
   freeze: {
     description: 'Halt decay for a file (TODO).',
     usage: 'freeze <id>',
-    handler: (term, args) => {
+    handler: (term: Xterm, args: string[]) => {
       term.writeln(`${COLORS.YELLOW}TODO: Implement freeze for: ${args.join(' ')}${COLORS.RESET}`);
     },
   },
   lessons: {
     description: 'Read data integrity mini-tutorials (TODO).',
     usage: 'lessons',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.writeln(`${COLORS.YELLOW}TODO: Implement lessons.${COLORS.RESET}`);
     },
   },
@@ -96,16 +163,15 @@ const COMMANDS = {
     description: 'Exit the lab and return to the landing page.',
     usage: 'exit',
     handler: () => {
-      window.location.href = '/'; // Simple redirect
+      window.location.href = '/';
     },
   },
-  // --- Easter Eggs ---
   sudo: {
     description: 'Elevate privileges? Maybe make a sandwich?',
     usage: 'sudo make me a sandwich',
-    handler: (term, args) => {
+    handler: (term: Xterm, args: string[]) => {
       if (args.join(' ') === 'make me a sandwich') {
-        term.writeln('Okay, Jim.'); // Classic.
+        term.writeln('Okay, Jim.');
       } else {
         term.writeln(`${COLORS.RED}Error:${COLORS.RESET} Incorrect usage. Did you mean 'make me a sandwich'?`);
       }
@@ -114,45 +180,45 @@ const COMMANDS = {
   xyzzy: {
     description: 'A hollow voice says "Plugh".',
     usage: 'xyzzy',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.writeln('Nothing happens.');
     },
   },
   id10t: {
     description: 'Report a user error.',
     usage: 'id10t',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.writeln(`${COLORS.RED}Error:${COLORS.RESET} User fault detected between keyboard and chair.`);
     },
   },
   cow: {
     description: 'Summon an ASCII cow.',
     usage: 'cow',
-    handler: async (term) => {
+    handler: async (term: Xterm) => {
       await displayAsciiArt(term, 'cow');
     },
   },
   doge: {
     description: 'Such wow. Much terminal.',
     usage: 'doge',
-    handler: async (term) => {
+    handler: async (term: Xterm) => {
       await displayAsciiArt(term, 'doge');
     },
   },
   parrot: {
     description: 'Party time!',
     usage: 'parrot',
-    handler: async (term) => {
+    handler: async (term: Xterm) => {
       await displayAsciiArt(term, 'parrot');
     },
   },
   matrix: {
     description: 'Enter the matrix.',
     usage: 'matrix',
-    handler: (term) => {
+    handler: (term: Xterm) => {
       term.clear();
-      let intervalId = null;
-      let keyListener = null;
+      let intervalId: NodeJS.Timeout | null = null;
+      let keyListener: IDisposable | null = null;
 
       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍｦｲｸｺｿﾁﾄﾉﾌﾔﾖﾙﾚﾛﾝ@#$%^&*/<>\\';
       const cols = term.cols;
@@ -206,7 +272,7 @@ const COMMANDS = {
 
       const stopMatrix = () => {
         if (intervalId) clearInterval(intervalId);
-        if (keyListener) keyListener.dispose();
+        keyListener?.dispose();
         term.clear();
         term.write('\x1b[?25h'); // Show cursor
         prompt(); // Show prompt again
@@ -251,7 +317,7 @@ function Terminal() {
       return;
     }
 
-    term.writeln(`${COLORS.YELLOW}Uploading \"${file.name}\" (${(file.size / 1024).toFixed(2)} KB)...${COLORS.RESET}`);
+    term.writeln(`${COLORS.YELLOW}Uploading "${file.name}" (${(file.size / 1024).toFixed(2)} KB)...${COLORS.RESET}`);
     prompt(); // Show prompt immediately after starting upload
 
     const formData = new FormData();
@@ -272,14 +338,14 @@ function Terminal() {
 
       // Success
       term.write('\r\n'); // Newline before success message
-      term.writeln(`${COLORS.CYBER_GREEN}Success!${COLORS.RESET} File \"${result.filename}\" uploaded.`);
+      term.writeln(`${COLORS.CYBER_GREEN}Success!${COLORS.RESET} File "${result.filename}" uploaded.`);
       term.writeln(`Assigned ID: ${COLORS.CYBER_ACCENT}${result.fileId}${COLORS.RESET}`);
       term.writeln(`Type ${COLORS.YELLOW}'list'${COLORS.RESET} to see your files (TODO).`);
 
     } catch (error) {
       console.error("Upload fetch error:", error);
       term.write('\r\n'); // Newline before error message
-      term.writeln(`${COLORS.RED}Upload failed for \"${file.name}\":${COLORS.RESET}`);
+      term.writeln(`${COLORS.RED}Upload failed for "${file.name}":${COLORS.RESET}`);
       term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
         // Reset the input value to allow uploading the same file again
@@ -305,17 +371,16 @@ function Terminal() {
     const command = COMMANDS[commandName];
 
     if (command) {
-      // Pass triggerUpload callback specifically to the upload command handler
-      const handlerArgs = commandName === 'upload' ? [term, args, { triggerUpload }] : [term, args];
-      await command.handler(...handlerArgs);
+      const context: Partial<CommandContext> = { triggerUpload };
+      await command.handler(term, args, context);
     } else {
       term.writeln(`${COLORS.RED}Command not found:${COLORS.RESET} ${commandName}`);
       term.writeln(`Type ${COLORS.CYBER_ACCENT}'help'${COLORS.RESET} for available commands.`);
+      prompt(); // Show prompt immediately for unknown command
     }
 
-    if (commandName !== 'matrix' && commandName !== 'exit' && commandName !== 'upload') {
-        prompt(); // Upload handles its own prompt calls during/after fetch
-    }
+    // Commands now handle their own prompting after async ops or during interaction
+    // So, no default prompt call here anymore unless it was an unknown command.
   };
 
   // Function to reset the idle timer
@@ -397,11 +462,13 @@ function Terminal() {
 
             if (trimmedLine) {
               // Call the async command handler and catch potential errors
-              handleCommand(term!, trimmedLine).catch(err => {
-                  console.error("Error processing command:", err);
-                  term!.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
-                  prompt(); // Ensure prompt is shown after error
-              }); 
+              if (term) {
+                handleCommand(term, trimmedLine).catch(err => {
+                    console.error("Error processing command:", err);
+                    term.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
+                    prompt(); // Ensure prompt is shown after error
+                }); 
+              }
             } else {
               prompt(); // Show prompt again if only Enter was pressed
             }
