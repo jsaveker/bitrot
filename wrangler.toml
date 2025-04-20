@@ -20,6 +20,12 @@ binding = "BITROT_R2" # How the R2 bucket is accessed in the code (e.g., env.BIT
 bucket_name = "bitrot-r2" # The actual bucket name from Cloudflare
 preview_bucket_name = "bitrot-r2" # Use the same name for local preview
 
+# Cron Triggers for scheduled tasks
+# See https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
+[triggers]
+# Run the "scheduled" export in "./functions/cron-decay.ts" every hour
+crons = ["0 * * * *"]
+
 # Ensure Node.js compatibility if needed for specific packages
 [node_compat]
 enabled = true 
