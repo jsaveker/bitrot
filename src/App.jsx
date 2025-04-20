@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import { FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
+import { Routes, Route, Link } from 'react-router-dom';
+import Lab from './components/Lab';
 
 // Helper function for random character
 const getRandomChar = () => {
@@ -76,7 +78,8 @@ const AsciiGlitch = () => {
   return <pre className="text-cyberpunk-primary text-xs md:text-sm leading-tight text-center opacity-80 mb-6 font-mono">{glitchedArt}</pre>;
 }
 
-function App() {
+// Landing Page Component (Extracted from App)
+function LandingPage() {
   const [corruptionLevel, setCorruptionLevel] = useState(0);
 
   useEffect(() => {
@@ -124,46 +127,34 @@ function App() {
             <p>&gt; Do not attempt to adjust your monitor. We control the vertical and the horizontal.</p>
           </div>
 
-          {/* Social links - REMOVED */}
-          {/* 
-          <div className="flex justify-center items-center gap-6 md:gap-8 border-t border-cyberpunk-primary/50 pt-5 mt-6">
-            <span className="text-xs text-gray-400">// Connect:</span>
-            <motion.a
-              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
-              href="https://github.com"
-              target="_blank" rel="noopener noreferrer"
-              className="text-cyberpunk-primary transition-all duration-200"
-              aria-label="GitHub"
-            >
-              <FaGithub size={24} />
-            </motion.a>
-            <motion.a
-              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
-              href="https://twitter.com"
-              target="_blank" rel="noopener noreferrer"
-              className="text-cyberpunk-primary transition-all duration-200"
-              aria-label="Twitter"
-            >
-              <FaTwitter size={24} />
-            </motion.a>
-            <motion.a
-              whileHover={{ scale: 1.2, y: -2, color: '#00ffff' }}
-              href="https://linkedin.com"
-              target="_blank" rel="noopener noreferrer"
-              className="text-cyberpunk-primary transition-all duration-200"
-              aria-label="LinkedIn"
-            >
-              <FaLinkedin size={24} />
-            </motion.a>
-          </div>
-          */}
+          {/* Removed Social links */}
 
-          <p className="text-center text-xs text-green-700 mt-6 animate-flicker">ETA: When it's done™</p>
+          {/* Link to Lab */}
+          <p className="text-center text-sm text-cyberpunk-secondary mt-6 animate-flicker">
+            &gt; Status nominal. Proceed to the{' '}
+            <Link 
+              to="/lab"
+              className="text-cyberpunk-accent hover:text-white hover:bg-cyberpunk-accent px-1 underline transition-all duration-150 font-bold"
+            >
+               [DATA DECAY LAB]
+            </Link>
+             ?
+          </p>
         </div>
       </motion.div>
 
-      {/* Removed old decorative corners as they are part of the terminal style now */}
+      {/* Removed old decorative corners */}
     </div>
+  );
+}
+
+// Main App Component for Routing
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/lab" element={<Lab />} />
+    </Routes>
   );
 }
 
