@@ -62,6 +62,34 @@ interface ErrorResponse {
     error: string;
 }
 
+// Argument parser return type
+interface ParsedArgs {
+    [key: string]: string | boolean | string[]; // Allow string array for _positional
+    _positional: string[]; // Ensure _positional is always a string array
+}
+
+// Simple argument parser for commands like rot
+function parseArgs(args: string[]): ParsedArgs { // Use ParsedArgs type
+    const parsed: ParsedArgs = { _positional: [] };
+    const positionalArgs: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+        if (args[i].startsWith('--')) {
+            const key = args[i].substring(2);
+            if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+                parsed[key] = args[i + 1];
+                i++;
+            } else {
+                parsed[key] = true;
+            }
+        } else {
+            // Directly push to the typed _positional array
+            parsed._positional.push(args[i]); 
+        }
+    }
+    // parsed._positional = positionalArgs; // No longer needed
+    return parsed;
+}
+
 const COMMANDS: CommandMap = {
   help: {
     description: 'Show this list of commands.',
@@ -199,10 +227,79 @@ const COMMANDS: CommandMap = {
     },
   },
   rot: {
-    description: 'Trigger on-demand decay (TODO).',
+    description: 'Generate and download an on-demand decay level.',
     usage: 'rot <id> --level N [--mode M]',
-    handler: (term: Xterm, args: string[]) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement on-demand rot for: ${args.join(' ')}${COLORS.RESET}`);
+    handler: async (term: Xterm, args: string[], context?: CommandContext) => {
+        const parsedArgs = parseArgs(args);
+        const fileId = parsedArgs._positional[0];
+        const levelArg = parsedArgs.level;
+        const modeArg = parsedArgs.mode;
+
+        if (!fileId || typeof levelArg !== 'string' || !/^[0-9]+$/.test(levelArg)) {
+             term.writeln(`${COLORS.RED}Usage: ${COMMANDS.rot.usage}${COLORS.RESET}`);
+             term.writeln(`Example: rot abc-123 --level 5 --mode flip`);
+             context?.writePrompt?.();
+             return;
+        }
+        
+        const urlParams = new URLSearchParams({
+            id: fileId,
+            level: levelArg,
+        });
+        if (modeArg && typeof modeArg === 'string') {
+            urlParams.set('mode', modeArg);
+        }
+
+        const url = `/rot?${urlParams.toString()}`;
+
+        term.writeln(`Generating level ${levelArg} decay for ${fileId}${modeArg ? ' using mode \'' + modeArg + '\'' : ''}...`);
+        context?.writePrompt?.();
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                let errorMsg = `HTTP error! Status: ${response.status}`;
+                try {
+                    const errResult: ErrorResponse = await response.json();
+                    errorMsg = errResult?.error || errorMsg;
+                } catch (jsonError) { /* Ignore */ }
+                throw new Error(errorMsg);
+            }
+
+            // Get filename from Content-Disposition
+            const disposition = response.headers.get('content-disposition');
+            let downloadFilename = `bitrot_${fileId}_rot_level${levelArg}.bin`;
+            if (disposition && disposition.includes('filename=')) {
+                const matches = /filename="?(.+?)"?$/i.exec(disposition);
+                if (matches && matches[1]) {
+                    downloadFilename = matches[1];
+                }
+            }
+
+            term.writeln(`${COLORS.CYBER_GREEN}Decayed data received. Preparing download for "${downloadFilename}"...${COLORS.RESET}`);
+            
+            // Trigger download (same as view)
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = downloadFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
+
+            term.writeln(`Download initiated for ${downloadFilename}.`);
+
+        } catch (error) {
+             console.error("Rot fetch/download error:", error);
+             term.write('\r\n');
+             term.writeln(`${COLORS.RED}Error generating decay for ${fileId}:${COLORS.RESET}`);
+             term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            context?.writePrompt?.();
+        }
     },
   },
   freeze: {
