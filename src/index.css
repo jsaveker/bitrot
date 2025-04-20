@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-cyberpunk-darker text-white font-cyber;
+    @apply bg-cyberpunk-darker text-white font-cyber overflow-hidden;
   }
 }
 
@@ -21,10 +21,58 @@
     @apply bg-cyberpunk-dark border-2 border-cyberpunk-primary 
            text-white px-4 py-2 focus:outline-none focus:border-cyberpunk-accent;
   }
+
+  .terminal-window {
+    @apply relative border-2 border-cyberpunk-primary bg-cyberpunk-dark bg-opacity-85 backdrop-blur-sm 
+           rounded-lg shadow-lg shadow-cyberpunk-primary/40 overflow-hidden;
+  }
+
+  .terminal-header {
+    @apply bg-gray-800 bg-opacity-50 px-4 py-2 border-b border-cyberpunk-primary/50 
+           flex items-center gap-2;
+  }
+
+  .terminal-button {
+    @apply w-3 h-3 rounded-full;
+  }
+  
+  .status-line {
+      @apply font-bold tracking-widest;
+  }
+}
+
+@layer utilities {
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .animate-flicker {
+    animation: flicker 1.5s infinite alternate;
+  }
+
+  @keyframes background-pan {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+  }
+  .animate-background-pan {
+      background: linear-gradient(
+        -45deg, 
+        theme('colors.cyberpunk.dark') 25%,
+        theme('colors.cyberpunk.primary / 10%') 25%,
+        theme('colors.cyberpunk.primary / 10%') 50%,
+        theme('colors.cyberpunk.dark') 50%,
+        theme('colors.cyberpunk.dark') 75%,
+        theme('colors.cyberpunk.secondary / 10%') 75%,
+        theme('colors.cyberpunk.secondary / 10%') 100%
+      );
+      background-size: 80px 80px;
+      animation: background-pan 15s linear infinite;
+  }
 }
 
 .scanline {
-  @apply fixed top-0 left-0 w-full h-1 bg-cyberpunk-primary opacity-20;
-  animation: scanline 6s linear infinite;
+  @apply fixed top-0 left-0 w-full h-1 bg-cyberpunk-primary opacity-10;
+  animation: scanline 8s linear infinite;
   pointer-events: none;
+  z-index: 50; /* Ensure it's on top */
 } 
