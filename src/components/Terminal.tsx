@@ -90,6 +90,12 @@ function parseArgs(args: string[]): ParsedArgs { // Use ParsedArgs type
     return parsed;
 }
 
+// Type for lesson list items
+interface LessonInfo {
+    id: string;
+    title: string;
+}
+
 const COMMANDS: CommandMap = {
   help: {
     description: 'Show this list of commands.',
@@ -353,10 +359,68 @@ const COMMANDS: CommandMap = {
     },
   },
   lessons: {
-    description: 'Read data integrity mini-tutorials (TODO).',
-    usage: 'lessons',
-    handler: (term: Xterm) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement lessons.${COLORS.RESET}`);
+    description: 'Read data integrity mini-tutorials.',
+    usage: 'lessons [list | <lesson-id>]',
+    handler: async (term: Xterm, args: string[], context?: CommandContext) => {
+        const subCommand = args[0] || 'list'; // Default to list
+
+        if (subCommand === 'list') {
+            term.writeln('Fetching available lessons...');
+            context?.writePrompt?.();
+            try {
+                const response = await fetch('/lessons');
+                const lessons: LessonInfo[] = await response.json(); // Parse JSON directly
+                
+                if (!response.ok) {
+                    // Assume error structure if not ok, or throw generic HTTP error
+                    const errorMsg = (lessons as any)?.error || `HTTP Error: ${response.status}`;
+                    throw new Error(errorMsg);
+                }
+                
+                term.write('\r\nAvailable Lessons:\r\n');
+                if (!lessons || lessons.length === 0) {
+                    term.writeln('  (No lessons found)');
+                } else {
+                    lessons.forEach((lesson: LessonInfo) => { 
+                        term.writeln(`  ${COLORS.CYBER_ACCENT}${lesson.id.padEnd(15)}${COLORS.RESET} ${lesson.title}`);
+                    });
+                }
+                term.writeln(`\r\nType 'lessons <lesson-id>' to read one.`);
+            } catch (error) {
+                 console.error("List lessons error:", error);
+                 term.write('\r\n');
+                 term.writeln(`${COLORS.RED}Error fetching lesson list:${COLORS.RESET}`);
+                 term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+            } finally {
+                context?.writePrompt?.();
+            }
+        } else {
+            // Fetch and display specific lesson content
+            const lessonId = subCommand;
+            term.writeln(`Fetching lesson \"${lessonId}\"...`);
+            context?.writePrompt?.();
+            try {
+                const response = await fetch(`/lessons/${encodeURIComponent(lessonId)}`);
+                const content = await response.text(); // Get raw text
+                if (!response.ok) {
+                    let errorMsg = `HTTP Error: ${response.status}`;
+                    try { errorMsg = JSON.parse(content).error || errorMsg; } catch (e) { /* ignore */ }
+                    throw new Error(errorMsg);
+                }
+
+                term.write('\r\n---\r\n'); // Separator
+                // Write content line by line, ensuring CRLF
+                content.split('\n').forEach(line => term.writeln(line));
+                term.writeln('---');
+            } catch (error) {
+                console.error(`Fetch lesson ${lessonId} error:`, error);
+                term.write('\r\n');
+                term.writeln(`${COLORS.RED}Error fetching lesson ${lessonId}:${COLORS.RESET}`);
+                term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+            } finally {
+                 context?.writePrompt?.();
+            }
+        }
     },
   },
   exit: {

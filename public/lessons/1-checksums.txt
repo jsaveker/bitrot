@@ -1,0 +1,15 @@
+Lesson 1: What's a Checksum?
+------------------------------
+
+Imagine sending a message across a noisy room. Did they hear it right?
+A checksum is like asking the receiver to add up all the numbers in the message and tell you the total.
+
+If the total matches what *you* calculated, the message *probably* arrived okay.
+If it doesn't match, something got scrambled!
+
+Computers use complex math (like SHA-256 or MD5) to calculate a checksum (or 'hash') for files.
+Storing this hash lets you verify later if the file has changed even by a single bit.
+
+It's a basic defense against silent data corruption!
+
+(Type 'lessons list' to see other topics.) 
