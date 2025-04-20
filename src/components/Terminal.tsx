@@ -96,8 +96,15 @@ const COMMANDS: CommandMap = {
     usage: 'help',
     handler: (term: Xterm) => {
       term.writeln('Available commands:');
+      // Define modes here or fetch dynamically if they become complex
+      const decayModes = 'bit-flip, ascii-shuffle, color-drain'; 
       Object.entries(COMMANDS).forEach(([name, { usage, description }]) => {
-        term.writeln(`  ${COLORS.CYBER_ACCENT}${usage.padEnd(15)}${COLORS.RESET} ${description}`);
+        let line = `  ${COLORS.CYBER_ACCENT}${usage.padEnd(25)}${COLORS.RESET} ${description}`;
+        // Add mode info specifically for rot
+        if (name === 'rot') {
+            line += ` (Modes: ${decayModes})`;
+        }
+        term.writeln(line);
       });
     },
   },
@@ -237,7 +244,7 @@ const COMMANDS: CommandMap = {
 
         if (!fileId || typeof levelArg !== 'string' || !/^[0-9]+$/.test(levelArg)) {
              term.writeln(`${COLORS.RED}Usage: ${COMMANDS.rot.usage}${COLORS.RESET}`);
-             term.writeln(`Example: rot abc-123 --level 5 --mode flip`);
+             term.writeln(`Example: rot abc-123 --level 5 --mode color-drain`);
              context?.writePrompt?.();
              return;
         }
@@ -252,7 +259,8 @@ const COMMANDS: CommandMap = {
 
         const url = `/rot?${urlParams.toString()}`;
 
-        term.writeln(`Generating level ${levelArg} decay for ${fileId}${modeArg ? ' using mode \'' + modeArg + '\'' : ''}...`);
+        const decayModeDisplay = (modeArg && typeof modeArg === 'string') ? modeArg : 'default';
+        term.writeln(`Generating level ${levelArg} decay for ${fileId} using mode '${decayModeDisplay}'...`);
         context?.writePrompt?.();
 
         try {
