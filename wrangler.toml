@@ -28,4 +28,12 @@ crons = ["0 * * * *"]
 
 # Ensure Node.js compatibility if needed for specific packages
 [node_compat]
-enabled = true 
+enabled = true
+
+# Build configuration to include WASM module
+[build]
+# Ensure WASM files from specific packages are included in the deployment
+upload.format = "modules"
+upload.rules = [
+  { type = "CompiledWasm", globs = ["**/*.wasm"], fallthrough = true }
+] 
