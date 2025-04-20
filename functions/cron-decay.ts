@@ -23,14 +23,10 @@ interface ScheduledController {
     noRetry: () => void;
 }
 
-// Placeholder for actual decay algorithms
-// Takes previous data, mode, and level, returns new data
-async function applyDecay(data: ArrayBuffer, mode: string, level: number): Promise<ArrayBuffer> {
-    console.log(`Applying decay (mode: ${mode}, level: ${level + 1}) - Placeholder, returning original data.`);
-    // TODO: Implement actual decay logic (bit-flip, jpeg-glitch, etc.)
-    // For now, just return the input data
-    return data; 
-}
+import { decay } from './decay'; // Import the decay router function
+
+// Placeholder for actual decay algorithms (REMOVED - now in decay.ts)
+// async function applyDecay(...) { ... }
 
 // Function triggered by Cron
 export const scheduled: ExportedHandlerScheduledHandler<Env> = async (controller, env, ctx) => {
@@ -69,8 +65,13 @@ export const scheduled: ExportedHandlerScheduledHandler<Env> = async (controller
                     }
                     const previousData = await previousObject.arrayBuffer();
 
-                    // 2. Apply decay algorithm
-                    const nextData = await applyDecay(previousData, metadata.decayMode, metadata.currentLevel);
+                    // 2. Apply decay algorithm using the imported router
+                    console.log(` - Applying decay mode: ${metadata.decayMode}`);
+                    const nextData = await decay(previousData, metadata.decayMode, metadata.currentLevel);
+                    if (nextData.byteLength === 0 && previousData.byteLength !== 0) {
+                        console.error(`Error: Decay function returned empty data for ${metadata.id}. Skipping update.`);
+                        continue; // Avoid storing empty data unless original was empty
+                    }
 
                     // 3. Upload new level data to R2
                     const nextLevel = metadata.currentLevel + 1;
