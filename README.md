@@ -33,9 +33,17 @@ npm run dev
    - Build output directory: `dist`
 6. Click "Deploy site"
 
+## Backend Setup (Cloudflare)
+
+This project uses Cloudflare Functions for backend logic, Cloudflare KV for metadata storage, and Cloudflare R2 for file storage.
+
+- **Functions:** Located in the `/functions` directory. Handlers like `upload.ts` process requests.
+- **Storage:** Configuration for KV namespaces and R2 buckets is defined in `wrangler.toml`. You need to create these resources in your Cloudflare dashboard and update `wrangler.toml` with the correct IDs/names before deploying.
+- **Bindings:** Ensure the KV and R2 bindings are correctly configured in your Cloudflare Pages project settings (Settings -> Functions -> Bindings) to match `wrangler.toml`.
+
 ## Customization
 
-- Edit `src/App.jsx` to modify the content
+- Edit `src/App.tsx` (or relevant `.tsx` files) to modify the content
 - Update colors in `tailwind.config.js`
 - Modify animations in `src/index.css`
 
