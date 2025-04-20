@@ -131,10 +131,71 @@ const COMMANDS: CommandMap = {
     },
   },
   view: {
-    description: 'View a specific decay level of a file (TODO).',
+    description: 'Download a specific decay level of a file.',
     usage: 'view <id> [level]',
-    handler: (term: Xterm, args: string[]) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement file view for: ${args.join(' ')}${COLORS.RESET}`);
+    handler: async (term: Xterm, args: string[], context?: CommandContext) => {
+        if (args.length < 1) {
+            term.writeln(`${COLORS.RED}Usage: ${COMMANDS.view.usage}${COLORS.RESET}`);
+            context?.writePrompt?.();
+            return;
+        }
+        
+        const fileId = args[0];
+        const levelStr = args[1]; // Optional level
+        const url = levelStr ? `/view/${fileId}/${levelStr}` : `/view/${fileId}`; // Construct URL
+
+        term.writeln(`Fetching file ${fileId}${levelStr ? ' at level ' + levelStr : ' (latest level)'}...`);
+        context?.writePrompt?.();
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                let errorMsg = `HTTP error! Status: ${response.status}`;
+                try {
+                    // Try to parse error JSON from backend
+                    const errResult: ErrorResponse = await response.json();
+                    errorMsg = errResult?.error || errorMsg;
+                } catch (jsonError) {
+                    // Ignore if response is not JSON
+                    console.warn('Failed to parse error response as JSON:', jsonError);
+                }
+                throw new Error(errorMsg);
+            }
+
+            // Get filename from Content-Disposition header if possible
+            const disposition = response.headers.get('content-disposition');
+            let downloadFilename = `bitrot_${fileId}${levelStr ? '_level' + levelStr : ''}.bin`; // Default filename
+            if (disposition && disposition.includes('filename=')) {
+                const matches = /filename="?(.+?)"?$/i.exec(disposition);
+                if (matches && matches[1]) {
+                    downloadFilename = matches[1];
+                }
+            }
+
+            term.writeln(`${COLORS.CYBER_GREEN}File data received. Preparing download for "${downloadFilename}"...${COLORS.RESET}`);
+            
+            // Create Blob and trigger download
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = downloadFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl); // Clean up object URL
+
+            term.writeln(`Download initiated for ${downloadFilename}.`);
+
+        } catch (error) {
+             console.error("View fetch/download error:", error);
+             term.write('\r\n');
+             term.writeln(`${COLORS.RED}Error retrieving file ${fileId}:${COLORS.RESET}`);
+             term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            context?.writePrompt?.();
+        }
     },
   },
   rot: {
