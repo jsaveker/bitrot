@@ -1,5 +1,5 @@
 import React from 'react';
-import Terminal from './Terminal'; // Import the Terminal component
+import Terminal from './Terminal.tsx'; // Update file extension
 
 function Lab() {
   return (
