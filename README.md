@@ -41,4 +41,4 @@ npm run dev
 
 ## License
 
-MIT 
+Apache-2.0 license
