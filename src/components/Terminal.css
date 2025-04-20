@@ -1,0 +1,31 @@
+/* Add styles for the screen burn effect */
+.screen-burn-overlay {
+    animation: burn-in-fade 1s ease-in-out forwards;
+}
+
+.screen-burn-text {
+    /* Optional: Add a subtle flicker or glow */
+    text-shadow: 0 0 5px rgba(51, 255, 51, 0.3), 0 0 10px rgba(51, 255, 51, 0.2);
+    animation: text-flicker 3s linear infinite alternate;
+}
+
+@keyframes burn-in-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Reuse or adapt flicker animation if needed */
+@keyframes text-flicker {
+    0%, 100% {
+        opacity: 0.5;
+        text-shadow: 0 0 5px rgba(51, 255, 51, 0.3), 0 0 10px rgba(51, 255, 51, 0.2);
+    }
+    50% {
+        opacity: 0.8;
+        text-shadow: 0 0 8px rgba(51, 255, 51, 0.5), 0 0 15px rgba(51, 255, 51, 0.3);
+    }
+} 
