@@ -50,10 +50,11 @@ const COMMANDS = {
   },
   // --- Add more commands here later ---
   upload: {
-    description: 'Upload a file to the decay chamber (TODO).',
-    usage: 'upload [file]',
-    handler: (term, args) => {
-      term.writeln(`${COLORS.YELLOW}TODO: Implement file upload for: ${args.join(' ')}${COLORS.RESET}`);
+    description: 'Upload a file via dialog to the decay chamber.',
+    usage: 'upload', // Simplified usage, ignore args for now
+    handler: (term, args, { triggerUpload }) => { // Added triggerUpload callback
+      term.writeln(`Initiating file upload... Please select a file.`);
+      triggerUpload(); // Call the function passed from the component
     },
   },
   list: {
@@ -225,10 +226,11 @@ const COMMANDS = {
 
 function Terminal() {
   const terminalRef = useRef(null);
-  const xtermInstance = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
+  const xtermInstance = useRef<Xterm | null>(null); // Added type for xterm instance
   const fitAddon = useRef(new FitAddon());
   const [isIdle, setIsIdle] = useState(false);
-  const idleTimer = useRef(null);
+  const idleTimer = useRef<NodeJS.Timeout | null>(null); // Added type for timer
 
   const prompt = () => {
     if (xtermInstance.current) {
@@ -236,7 +238,61 @@ function Terminal() {
     }
   };
 
-  const handleCommand = async (term, commandLine) => {
+  // Function to trigger the file input click
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Async function to handle the actual file upload
+  const handleFileUpload = async (file: File) => {
+    const term = xtermInstance.current;
+    if (!term || !file) {
+      console.error("Terminal instance or file not available for upload.");
+      return;
+    }
+
+    term.writeln(`${COLORS.YELLOW}Uploading \"${file.name}\" (${(file.size / 1024).toFixed(2)} KB)...${COLORS.RESET}`);
+    prompt(); // Show prompt immediately after starting upload
+
+    const formData = new FormData();
+    formData.append('file', file); // Key must match backend ('file')
+
+    try {
+      const response = await fetch('/upload', { // Relative path to the function
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Throw error to be caught below, using message from backend if available
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      }
+
+      // Success
+      term.write('\r\n'); // Newline before success message
+      term.writeln(`${COLORS.CYBER_GREEN}Success!${COLORS.RESET} File \"${result.filename}\" uploaded.`);
+      term.writeln(`Assigned ID: ${COLORS.CYBER_ACCENT}${result.fileId}${COLORS.RESET}`);
+      term.writeln(`Type ${COLORS.YELLOW}'list'${COLORS.RESET} to see your files (TODO).`);
+
+    } catch (error) {
+      console.error("Upload fetch error:", error);
+      term.write('\r\n'); // Newline before error message
+      term.writeln(`${COLORS.RED}Upload failed for \"${file.name}\":${COLORS.RESET}`);
+      term.writeln(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+        // Reset the input value to allow uploading the same file again
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+        // Write a new prompt line after completion/error
+        prompt();
+    }
+  };
+
+  // Command handler (passing triggerUpload)
+  const handleCommand = async (term: Xterm, commandLine: string) => {
     const parts = commandLine.trim().split(' ').filter(part => part !== '');
     const commandName = parts[0];
     const args = parts.slice(1);
@@ -249,14 +305,16 @@ function Terminal() {
     const command = COMMANDS[commandName];
 
     if (command) {
-      await command.handler(term, args);
+      // Pass triggerUpload callback specifically to the upload command handler
+      const handlerArgs = commandName === 'upload' ? [term, args, { triggerUpload }] : [term, args];
+      await command.handler(...handlerArgs);
     } else {
       term.writeln(`${COLORS.RED}Command not found:${COLORS.RESET} ${commandName}`);
       term.writeln(`Type ${COLORS.CYBER_ACCENT}'help'${COLORS.RESET} for available commands.`);
     }
-    
-    if (commandName !== 'matrix' && commandName !== 'exit') {
-         prompt();
+
+    if (commandName !== 'matrix' && commandName !== 'exit' && commandName !== 'upload') {
+        prompt(); // Upload handles its own prompt calls during/after fetch
     }
   };
 
@@ -274,9 +332,10 @@ function Terminal() {
   };
 
   useEffect(() => {
+    let term: Xterm | null = null; // Variable to hold the instance for cleanup
+
     if (terminalRef.current && !xtermInstance.current) {
-      // Initialize xterm
-      const term = new Xterm({
+      term = new Xterm({
         cursorBlink: true,
         cursorStyle: 'block',
         fontFamily: '"Source Code Pro", monospace', // Match theme
@@ -338,9 +397,9 @@ function Terminal() {
 
             if (trimmedLine) {
               // Call the async command handler and catch potential errors
-              handleCommand(term, trimmedLine).catch(err => {
+              handleCommand(term!, trimmedLine).catch(err => {
                   console.error("Error processing command:", err);
-                  term.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
+                  term!.writeln(`\r\n${COLORS.RED}An error occurred processing command: ${trimmedLine}${COLORS.RESET}`);
                   prompt(); // Ensure prompt is shown after error
               }); 
             } else {
@@ -358,6 +417,24 @@ function Terminal() {
         // Ignore other control characters for now
       });
 
+      // --- File Input Change Listener --- 
+      const handleFileChange = (event: Event) => {
+          const input = event.target as HTMLInputElement;
+          if (input.files && input.files.length > 0) {
+              const file = input.files[0];
+              handleFileUpload(file); // Call the async upload handler
+          } else {
+              // Optional: Handle case where user cancels file dialog
+              xtermInstance.current?.writeln("File selection cancelled.");
+              prompt();
+          }
+      };
+
+      const currentFileInput = fileInputRef.current;
+      if (currentFileInput) {
+          currentFileInput.addEventListener('change', handleFileChange);
+      }
+      
       // --- Resize Handling ---
       const handleResize = () => {
         resetIdleTimer(); // Also reset on resize
@@ -369,21 +446,30 @@ function Terminal() {
 
       // --- Cleanup ---
       return () => {
-        clearTimeout(idleTimer.current); // Clear timer on unmount
+        clearTimeout(idleTimer.current as NodeJS.Timeout); 
         window.removeEventListener('resize', handleResize);
-        dataListener.dispose(); // Dispose the data listener
-        // Dispose matrix handler's key listener if it exists (complex to track here, handled internally in matrix for now)
-        if (xtermInstance.current) {
-           xtermInstance.current.dispose();
-           xtermInstance.current = null;
+        dataListener.dispose();
+        if (currentFileInput) {
+            currentFileInput.removeEventListener('change', handleFileChange);
         }
+        if (term) { // Use the local variable `term` for cleanup
+           term.dispose();
+        }
+        xtermInstance.current = null; // Clear the ref
       };
     }
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once
 
   return (
     <div className="w-full h-full relative"> {/* Added relative positioning */} 
       <div ref={terminalRef} className="w-full h-full"></div>
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        aria-hidden="true" 
+      />
       {/* Screen Burn Overlay */}
       {isIdle && (
         <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center pointer-events-none screen-burn-overlay">
