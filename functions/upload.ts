@@ -11,9 +11,9 @@ interface FileMetadata {
     mimeType: string;
     size: number;
     createdAt: string; // ISO 8601 format
-    // decayMode: string; // e.g., 'jpeg-glitch', 'bit-flip'
-    // currentLevel: number;
-    // nextDecayAt: string; // ISO 8601 format
+    decayMode: string; // e.g., 'bit-flip' (default for now)
+    currentLevel: number;
+    nextDecayAt: string | null; // ISO 8601 format, null if frozen
 }
 
 // Define the expected request context for Pages Functions
@@ -61,43 +61,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         //    return errorResponse(`File size exceeds limit of ${MAX_SIZE / 1024 / 1024} MB`);
         // }
 
-        // 3. Generate unique ID
+        // 3. Generate unique ID & timestamp
         const fileId = crypto.randomUUID();
         const createdAt = new Date().toISOString();
 
-        // 4. Upload file to R2 (as ArrayBuffer)
+        // 4. Upload file to R2 (level_0)
         const r2Key = `${fileId}/level_0`;
         const fileData = await file.arrayBuffer();
-
-        console.log(`Uploading ${file.name} (${file.size} bytes) to R2 key: ${r2Key}`);
-        await env.BITROT_R2.put(r2Key, fileData, {
-            httpMetadata: { 
-                contentType: file.type || 'application/octet-stream',
-                // You could add more metadata here, like contentDisposition
-                // contentDisposition: `attachment; filename="${file.name}"` 
-            },
-            // Optional: Add custom metadata if needed
-            // customMetadata: { uploadedBy: 'user-xyz' },
-        });
+        console.log(`Uploading ${file.name} to R2 key: ${r2Key}`);
+        await env.BITROT_R2.put(r2Key, fileData, { httpMetadata: { contentType: file.type } });
         console.log(`Successfully uploaded to R2.`);
 
-        // 5. Create metadata object
+        // 5. Create metadata object with initial decay state
+        const nextDecayTime = new Date(Date.now() + 60 * 60 * 1000); // Decay in 1 hour
         const metadata: FileMetadata = {
             id: fileId,
             filename: file.name,
             mimeType: file.type || 'application/octet-stream',
             size: file.size,
             createdAt: createdAt,
-            // Initialize decay state (placeholders for now)
-            // decayMode: 'bit-flip', // Default decay mode?
-            // currentLevel: 0,
-            // nextDecayAt: new Date(Date.now() + 3600 * 1000).toISOString(), // Decay in 1 hour?
+            decayMode: 'bit-flip', // Default decay mode
+            currentLevel: 0,
+            nextDecayAt: nextDecayTime.toISOString(), // Schedule first decay
         };
 
         // 6. Put metadata into KV
         console.log(`Storing metadata in KV for key: ${fileId}`);
-        // Use JSON.stringify for the value, expire in 1 day (86400s) for demo purposes?
-        await env.BITROT_KV.put(fileId, JSON.stringify(metadata), { expirationTtl: 86400 }); 
+        await env.BITROT_KV.put(fileId, JSON.stringify(metadata), { expirationTtl: 86400 }); // Keep 1 day expiration for now
         console.log(`Successfully stored metadata in KV.`);
 
         // 7. Return success response
