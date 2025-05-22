@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMM Tool Detection Flow - Final</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .title-container {
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .flow-container {
+            position: relative;
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-height: 500px;
+            width: 100%;
+        }
+        
+        .node {
+            position: absolute;
+            width: 200px;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .node:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .node-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .node-content {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .data-source {
+            background-color: #4361ee;
+        }
+        
+        .processing {
+            background-color: #3a86ff;
+        }
+        
+        .aggregation {
+            background-color: #f72585;
+        }
+        
+        .output {
+            background-color: #3a0ca3;
+        }
+        
+        .edge-label-container {
+            position: absolute;
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .edge-label-1 {
+            color: #4361ee;
+            border: 2px solid #4361ee;
+        }
+        
+        .edge-label-2 {
+            color: #3a86ff;
+            border: 2px solid #3a86ff;
+        }
+        
+        .edge-label-3 {
+            color: #f72585;
+            border: 2px solid #f72585;
+        }
+        
+        .mitre-container {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .mitre-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 10px;
+        }
+        
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .arrow {
+            fill: none;
+            stroke-width: 2;
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1 class="title">Remote Monitoring & Management (RMM) Tool Detection</h1>
+            <p class="subtitle">
+                Detects Remote Monitoring and Management (RMM) tools that are frequently abused by threat actors for lateral movement, persistence, and command & control.
+            </p>
+        </div>
+        
+        <div class="flow-container">
+            <div class="flow-diagram">
+                <!-- SVG Arrows -->
+                <svg>
+                    <!-- Event Collection to RMM Identification -->
+                    <path class="arrow" stroke="#4361ee" d="M220,120 L240,120" marker-end="url(#arrowhead1)"></path>
+                    
+                    <!-- RMM Identification to Time-Based Aggregation -->
+                    <path class="arrow" stroke="#3a86ff" d="M440,120 L460,120" marker-end="url(#arrowhead2)"></path>
+                    
+                    <!-- Time-Based Aggregation to Alert Generation -->
+                    <path class="arrow" stroke="#f72585" d="M660,120 L680,120" marker-end="url(#arrowhead3)"></path>
+                    
+                    <!-- Arrow Markers -->
+                    <defs>
+                        <marker id="arrowhead1" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#4361ee" />
+                        </marker>
+                        <marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#3a86ff" />
+                        </marker>
+                        <marker id="arrowhead3" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#f72585" />
+                        </marker>
+                    </defs>
+                </svg>
+                
+                <!-- Nodes -->
+                <div class="node data-source" style="top: 70px; left: 20px;">
+                    <div class="node-header">Event Collection</div>
+                    <div class="node-content">
+                        <p>Multiple Sysmon Event Types<br>(1, 3, 7, 2, 22, 11)</p>
+                    </div>
+                </div>
+                
+                <div class="node processing" style="top: 70px; left: 240px;">
+                    <div class="node-header">RMM Identification</div>
+                    <div class="node-content">
+                        <p>Pattern matching for<br>known RMM tools</p>
+                    </div>
+                </div>
+                
+                <div class="node aggregation" style="top: 70px; left: 460px;">
+                    <div class="node-header">Time-Based Aggregation</div>
+                    <div class="node-content">
+                        <p>Groups by:<br>
+                        • Process path<br>
+                        • Computer name<br>
+                        • Date</p>
+                    </div>
+                </div>
+                
+                <div class="node output" style="top: 70px; left: 680px;">
+                    <div class="node-header">Alert Generation</div>
+                    <div class="node-content">
+                        <p>RMM Tool Detection<br>Risk Score: 0-100</p>
+                        <div class="mitre-container">
+                            <div class="mitre-tag">T1219</div>
+                            <div class="mitre-tag">T1021</div>
+                            <div class="mitre-tag">T1072</div>
+                            <div class="mitre-tag">T1105</div>
+                            <div class="mitre-tag">T1562</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Edge Labels removed as requested -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

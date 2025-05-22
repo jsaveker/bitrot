@@ -3,6 +3,7 @@ import { FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Lab from './components/Lab';
+import AttackFlows from './components/AttackFlows';
 
 // Helper function for random character
 const getRandomChar = () => {
@@ -154,6 +155,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/lab" element={<Lab />} />
+      <Route path="/attack/*" element={<AttackFlows />} />
     </Routes>
   );
 }

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickFix Detection Flow - Simplified</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .title-container {
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .flow-container {
+            position: relative;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-height: 600px;
+        }
+        
+        .node {
+            position: absolute;
+            width: 200px;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .node:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .node-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .node-content {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .data-source {
+            background-color: #4361ee;
+        }
+        
+        .correlation {
+            background-color: #7209b7;
+        }
+        
+        .match {
+            background-color: #f72585;
+        }
+        
+        .output {
+            background-color: #3a0ca3;
+        }
+        
+        .edge {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .edge-path {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .edge-animated {
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+        
+        .edge-label {
+            font-size: 12px;
+            font-weight: bold;
+            fill: #555;
+            text-anchor: middle;
+        }
+        
+        .mitre-container {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .mitre-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1 class="title">Windows ClickFix Initial Access Detection</h1>
+            <p class="subtitle">
+                Detects ClickFix phishing activity where users are tricked into executing malicious commands through the Windows Run dialog or browser.
+            </p>
+        </div>
+        
+        <div class="flow-container">
+            <div class="flow-diagram">
+                <!-- SVG for edges -->
+                <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                    <!-- Registry Events to Process Near Registry -->
+                    <path id="edge1" class="edge-path edge-animated" stroke="#4361ee" d="M220,100 C280,100 320,150 400,175" />
+                    <text>
+                        <textPath href="#edge1" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Registry Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Process Events to Process Near Registry -->
+                    <path id="edge2" class="edge-path edge-animated" stroke="#4361ee" d="M220,225 C280,225 320,200 400,200" />
+                    <text>
+                        <textPath href="#edge2" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Process Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Process Near Registry to Match Pattern -->
+                    <path id="edge3" class="edge-path edge-animated" stroke="#7209b7" d="M500,200 C520,250 520,300 500,350" />
+                    <!-- Use a regular text element instead of textPath -->
+                    <text x="530" y="275" class="edge-label" style="fill: #7209b7; font-weight: bold;">Within 1s</text>
+                    
+                    <!-- Network Events to Match Pattern -->
+                    <path id="edge4" class="edge-path edge-animated" stroke="#4361ee" d="M220,375 C300,375 400,375 500,375" />
+                    <text>
+                        <textPath href="#edge4" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Network Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Match Pattern to Output Formatting -->
+                    <path id="edge5" class="edge-path edge-animated" stroke="#f72585" d="M600,375 C650,325 680,275 700,225" />
+                    <!-- Use a regular text element instead of textPath -->
+                    <text x="650" y="300" class="edge-label" style="fill: #f72585; font-weight: bold;">Within 5s</text>
+                </svg>
+                
+                <!-- Nodes -->
+                <div class="node data-source" style="top: 50px; left: 20px;">
+                    <div class="node-header">Registry Events</div>
+                    <div class="node-content">
+                        <p>Windows Run Dialog usage<br>(Sysmon Event ID 13)</p>
+                    </div>
+                </div>
+                
+                <div class="node data-source" style="top: 200px; left: 20px;">
+                    <div class="node-header">Process Events</div>
+                    <div class="node-content">
+                        <p>Suspicious PowerShell commands<br>(Sysmon Event ID 1)</p>
+                    </div>
+                </div>
+                
+                <div class="node data-source" style="top: 350px; left: 20px;">
+                    <div class="node-header">Network Events</div>
+                    <div class="node-content">
+                        <p>Connections to C2 server<br>(Sysmon Event ID 3)</p>
+                    </div>
+                </div>
+                
+                <div class="node correlation" style="top: 150px; left: 400px;">
+                    <div class="node-header">Time Correlation</div>
+                    <div class="node-content">
+                        <p>Registry + Process events<br>occurring within 1 second</p>
+                    </div>
+                </div>
+                
+                <div class="node match" style="top: 350px; left: 500px;">
+                    <div class="node-header">Pattern Detection</div>
+                    <div class="node-content">
+                        <p>Correlated events followed by<br>network activity within 5 seconds</p>
+                    </div>
+                </div>
+                
+                <div class="node output" style="top: 150px; left: 700px;">
+                    <div class="node-header">Alert Generation</div>
+                    <div class="node-content">
+                        <p>ClickFix C2 Activity Detection<br>Risk Score: 100</p>
+                        <div class="mitre-container">
+                            <div class="mitre-tag">T1571</div>
+                            <div class="mitre-tag">T1105</div>
+                            <div class="mitre-tag">T1572</div>
+                            <div class="mitre-tag">T1059.001</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
