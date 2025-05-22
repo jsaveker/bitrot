@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Remote Debugging Detection Flow</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .title-container {
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .flow-container {
+            position: relative;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-height: 800px;
+        }
+        
+        .node {
+            position: absolute;
+            width: 280px;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .node:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .node-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .node-content {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .node-content ul {
+            margin: 5px 0;
+            padding-left: 15px;
+        }
+        
+        .node-content li {
+            margin-bottom: 3px;
+        }
+        
+        .node-content code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .data-source {
+            background-color: #4361ee;
+        }
+        
+        .processing {
+            background-color: #7209b7;
+        }
+        
+        .risk-analysis {
+            background-color: #f72585;
+        }
+        
+        .output {
+            background-color: #3a0ca3;
+        }
+        
+        .edge {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .edge-path {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .edge-animated {
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+        
+        .edge-label {
+            font-size: 12px;
+            font-weight: bold;
+            fill: #555;
+            text-anchor: middle;
+        }
+        
+        .mitre-container {
+            margin-top: 8px;
+        }
+        
+        .mitre-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1 class="title">Windows Browser Remote Debugging Detection</h1>
+            <p class="subtitle">
+                This detection identifies potential browser session hijacking attempts using remote debugging features. Adversaries may enable browser debugging ports to steal session cookies or credentials.
+            </p>
+        </div>
+        
+        <div class="flow-container">
+            <div class="flow-diagram">
+                <!-- SVG for edges -->
+                <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                    <!-- Sysmon Events to Risk Analysis -->
+                    <path id="edge1" class="edge-path edge-animated" stroke="#4361ee" d="M330,100 C380,100 430,150 480,150" />
+                    <text>
+                        <textPath href="#edge1" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Process Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- PowerShell Events to Risk Analysis -->
+                    <path id="edge2" class="edge-path edge-animated" stroke="#4361ee" d="M330,250 C380,250 430,200 480,200" />
+                    <text>
+                        <textPath href="#edge2" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Script Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Risk Analysis to Alert Output -->
+                    <path id="edge3" class="edge-path edge-animated" stroke="#f72585" d="M630,175 C680,175 730,175 800,175" />
+                    <text>
+                        <textPath href="#edge3" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Risk Score</tspan>
+                        </textPath>
+                    </text>
+                </svg>
+                
+                <!-- Nodes -->
+                <div class="node data-source" style="top: 50px; left: 50px;">
+                    <div class="node-header">Sysmon Events</div>
+                    <div class="node-content">
+                        <p>Process creation events:</p>
+                        <ul>
+                            <li>Sysmon Event ID 1</li>
+                            <li>Chrome process executions</li>
+                            <li>Command line arguments</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node data-source" style="top: 200px; left: 50px;">
+                    <div class="node-header">PowerShell Logs</div>
+                    <div class="node-content">
+                        <p>Script execution events:</p>
+                        <ul>
+                            <li>PowerShell Event ID 4103</li>
+                            <li>Browser launch commands</li>
+                            <li>Debugging flags in scripts</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node risk-analysis" style="top: 125px; left: 480px;">
+                    <div class="node-header">Risk Analysis</div>
+                    <div class="node-content">
+                        <p>Key risk factors:</p>
+                        <ul>
+                            <li>Remote debugging port flags</li>
+                            <li>DevTools operations</li>
+                            <li>Suspicious locations</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node output" style="top: 125px; left: 800px;">
+                    <div class="node-header">Alert Output</div>
+                    <div class="node-content">
+                        <ul>
+                            <li>Severity by risk score</li>
+                            <li>Host and user context</li>
+                            <li>Command details</li>
+                        </ul>
+                        <div class="mitre-container">
+                            <div class="mitre-tag">T1185</div>
+                            <div class="mitre-tag">Collection</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

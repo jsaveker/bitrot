@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickFix Detection Flow</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .title-container {
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .flow-container {
+            position: relative;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+        }
+        
+        .flow-diagram {
+            position: relative;
+            min-height: 800px;
+        }
+        
+        .node {
+            position: absolute;
+            width: 280px;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .node:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .node-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .node-content {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .node-content ul {
+            margin: 5px 0;
+            padding-left: 15px;
+        }
+        
+        .node-content li {
+            margin-bottom: 3px;
+        }
+        
+        .node-content code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .data-source {
+            background-color: #4361ee;
+        }
+        
+        .correlation {
+            background-color: #7209b7;
+        }
+        
+        .match {
+            background-color: #f72585;
+        }
+        
+        .output {
+            background-color: #3a0ca3;
+        }
+        
+        .edge {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .edge-path {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .edge-animated {
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+        
+        .edge-label {
+            font-size: 12px;
+            font-weight: bold;
+            fill: #555;
+            text-anchor: middle;
+        }
+        
+        .mitre-container {
+            margin-top: 8px;
+        }
+        
+        .mitre-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1 class="title">Windows ClickFix Initial Access Detection</h1>
+            <p class="subtitle">
+                This detection identifies potential ClickFix phishing activity, a technique where users are socially engineered to execute malicious commands either through the Windows Run dialog (Windows + R) or directly from their browser. The attack typically involves convincing users to paste commands that lead to execution of PowerShell or other scripting tools, often disguised as a way to "fix" a supposed error.
+            </p>
+        </div>
+        
+        <div class="flow-container">
+            <div class="flow-diagram">
+                <!-- SVG for edges -->
+                <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                    <!-- Registry Events to Process Near Registry -->
+                    <path id="edge1" class="edge-path edge-animated" stroke="#4361ee" d="M280,150 C350,150 400,225 450,225" />
+                    <text>
+                        <textPath href="#edge1" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Registry Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Process Events to Process Near Registry -->
+                    <path id="edge2" class="edge-path edge-animated" stroke="#4361ee" d="M280,350 C350,350 400,275 450,275" />
+                    <text>
+                        <textPath href="#edge2" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Process Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Process Near Registry to Match Pattern -->
+                    <path id="edge3" class="edge-path edge-animated" stroke="#7209b7" d="M500,300 L500,400" />
+                    <text>
+                        <textPath href="#edge3" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Within 1s</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Network Events to Match Pattern -->
+                    <path id="edge4" class="edge-path edge-animated" stroke="#4361ee" d="M280,600 C350,600 400,500 450,450" />
+                    <text>
+                        <textPath href="#edge4" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Network Events</tspan>
+                        </textPath>
+                    </text>
+                    
+                    <!-- Match Pattern to Output Formatting -->
+                    <path id="edge5" class="edge-path edge-animated" stroke="#f72585" d="M600,450 L800,350" />
+                    <text>
+                        <textPath href="#edge5" startOffset="50%" class="edge-label">
+                            <tspan dy="-5">Within 5s</tspan>
+                        </textPath>
+                    </text>
+                </svg>
+                
+                <!-- Nodes -->
+                <div class="node data-source" style="top: 50px; left: 0px;">
+                    <div class="node-header">Registry Events (Sysmon Event ID 13)</div>
+                    <div class="node-content">
+                        <p>Identifies Windows Run Dialog usage:</p>
+                        <ul>
+                            <li>Filter for <code>winlog.channel == "Microsoft-Windows-Sysmon/Operational"</code></li>
+                            <li>Filter for <code>winlog.event_id == "13"</code> (registry events)</li>
+                            <li>Extract registry key and value</li>
+                            <li>Filter for Run MRU registry keys</li>
+                            <li>Filter for <code>explorer.exe</code> as the image</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node data-source" style="top: 250px; left: 0px;">
+                    <div class="node-header">Process Events (Sysmon Event ID 1)</div>
+                    <div class="node-content">
+                        <p>Identifies suspicious process creations:</p>
+                        <ul>
+                            <li>Filter for <code>winlog.channel == "Microsoft-Windows-Sysmon/Operational"</code></li>
+                            <li>Filter for <code>winlog.event_id == "1"</code> (process creation)</li>
+                            <li>Extract command line, image, parent image</li>
+                            <li>Filter for PowerShell web requests (<code>iwr</code>, <code>invoke-webrequest</code>, <code>wget</code>)</li>
+                            <li>Filter for hidden window parameter (<code>-w hidden</code>)</li>
+                            <li>Filter for <code>explorer.exe</code> as parent process</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node data-source" style="top: 500px; left: 0px;">
+                    <div class="node-header">Network Events (Sysmon Event ID 3)</div>
+                    <div class="node-content">
+                        <p>Identifies suspicious network connections:</p>
+                        <ul>
+                            <li>Filter for <code>winlog.channel == "Microsoft-Windows-Sysmon/Operational"</code></li>
+                            <li>Filter for <code>winlog.event_id == "3"</code> (network connection)</li>
+                            <li>Extract destination IP, port, image</li>
+                            <li>Filter for destination IP <code>172.31.7.63</code></li>
+                            <li>Filter for destination port <code>4444</code></li>
+                            <li>Filter for image path containing <code>\temp\*.exe</code></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node correlation" style="top: 150px; left: 400px;">
+                    <div class="node-header">Process Near Registry Correlation</div>
+                    <div class="node-content">
+                        <p>Correlates process and registry events:</p>
+                        <ul>
+                            <li>Uses <code>WINDOW</code> to find events on same host</li>
+                            <li>Time window: <code>WITHIN 1s</code></li>
+                            <li>Ensures both events are present</li>
+                            <li>Groups by host</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node match" style="top: 350px; left: 400px;">
+                    <div class="node-header">MATCH Pattern Detection</div>
+                    <div class="node-content">
+                        <p>Correlates previous events with network activity:</p>
+                        <ul>
+                            <li>Uses <code>MATCH</code> to find sequence of events</li>
+                            <li>Looks for process+registry followed by network events</li>
+                            <li>Time constraint: <code>&lt;= 5s</code> between events</li>
+                            <li>Groups by host and match number</li>
+                            <li>Aggregates events into a single detection</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="node output" style="top: 250px; left: 800px;">
+                    <div class="node-header">Output Formatting</div>
+                    <div class="node-content">
+                        <p>Creates structured output for analysts:</p>
+                        <ul>
+                            <li>Creates message: "ClickFix C2 Activity Detection"</li>
+                            <li>Adds severity label: <code>CRITICAL</code></li>
+                            <li>Includes host, user, command details</li>
+                            <li>Includes registry and network details</li>
+                            <li>Sets risk score to <code>100</code></li>
+                            <li>Adds MITRE ATT&CK mappings</li>
+                        </ul>
+                        <div class="mitre-container">
+                            <div class="mitre-tag">T1571: Non-Standard Port</div>
+                            <div class="mitre-tag">T1105: Ingress Tool Transfer</div>
+                            <div class="mitre-tag">T1572: Protocol Tunneling</div>
+                            <div class="mitre-tag">T1059.001: PowerShell</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
