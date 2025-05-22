@@ -14,7 +14,7 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         
@@ -51,7 +51,7 @@
         .flow-diagram {
             position: relative;
             min-height: 500px;
-            width: 100%;
+            min-width: 990px;
         }
         
         .node {
@@ -178,13 +178,13 @@
                 <!-- SVG Arrows -->
                 <svg>
                     <!-- Event Collection to RMM Identification -->
-                    <path class="arrow" stroke="#4361ee" d="M220,120 L240,120" marker-end="url(#arrowhead1)"></path>
+                    <path class="arrow" stroke="#4361ee" d="M220,120 L270,120" marker-end="url(#arrowhead1)"></path>
                     
                     <!-- RMM Identification to Time-Based Aggregation -->
-                    <path class="arrow" stroke="#3a86ff" d="M440,120 L460,120" marker-end="url(#arrowhead2)"></path>
+                    <path class="arrow" stroke="#3a86ff" d="M470,120 L520,120" marker-end="url(#arrowhead2)"></path>
                     
                     <!-- Time-Based Aggregation to Alert Generation -->
-                    <path class="arrow" stroke="#f72585" d="M660,120 L680,120" marker-end="url(#arrowhead3)"></path>
+                    <path class="arrow" stroke="#f72585" d="M720,120 L770,120" marker-end="url(#arrowhead3)"></path>
                     
                     <!-- Arrow Markers -->
                     <defs>
@@ -208,14 +208,14 @@
                     </div>
                 </div>
                 
-                <div class="node processing" style="top: 70px; left: 240px;">
+                <div class="node processing" style="top: 70px; left: 270px;">
                     <div class="node-header">RMM Identification</div>
                     <div class="node-content">
                         <p>Pattern matching for<br>known RMM tools</p>
                     </div>
                 </div>
                 
-                <div class="node aggregation" style="top: 70px; left: 460px;">
+                <div class="node aggregation" style="top: 70px; left: 520px;">
                     <div class="node-header">Time-Based Aggregation</div>
                     <div class="node-content">
                         <p>Groups by:<br>
@@ -225,7 +225,7 @@
                     </div>
                 </div>
                 
-                <div class="node output" style="top: 70px; left: 680px;">
+                <div class="node output" style="top: 70px; left: 770px;">
                     <div class="node-header">Alert Generation</div>
                     <div class="node-content">
                         <p>RMM Tool Detection<br>Risk Score: 0-100</p>
