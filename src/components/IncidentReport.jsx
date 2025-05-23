@@ -44,17 +44,53 @@ const createTimelineFlow = (markdownContent) => {
 
         // Create main event node - make it bigger and more prominent
         const currentNodeId = `event-${nodeId++}`;
+        
+        // Better text handling for long content
+        const displayContent = content.length > 280 ? content.substring(0, 280) + '...' : content;
+        const contentLines = displayContent.split('\n');
+        const summary = contentLines.slice(0, 6).join('\n'); // Limit to 6 lines max
+        
         nodes.push({
             id: currentNodeId,
             type: 'default',
             position: { x: 600, y: yPosition },
             data: { 
                 label: (
-                    <div style={{ padding: '16px', textAlign: 'left' }}>
-                        <strong style={{ color: '#f72585', fontSize: '16px', display: 'block', marginBottom: '6px' }}>{title}</strong>
-                        {time && <div style={{ color: '#64748b', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>{time}</div>}
-                        <div style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.4', maxHeight: '120px', overflow: 'auto' }}>
-                            {content.substring(0, 300)}{content.length > 300 ? '...' : ''}
+                    <div style={{ padding: '16px', textAlign: 'left', height: '148px', overflow: 'hidden' }}>
+                        <strong style={{ 
+                            color: '#f72585', 
+                            fontSize: '15px', 
+                            display: 'block', 
+                            marginBottom: '6px',
+                            lineHeight: '1.2',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {title.length > 35 ? title.substring(0, 35) + '...' : title}
+                        </strong>
+                        {time && (
+                            <div style={{ 
+                                color: '#64748b', 
+                                fontSize: '11px', 
+                                marginBottom: '10px', 
+                                fontWeight: '500' 
+                            }}>
+                                {time}
+                            </div>
+                        )}
+                        <div style={{ 
+                            color: '#e2e8f0', 
+                            fontSize: '12px', 
+                            lineHeight: '1.3', 
+                            height: '90px',
+                            overflow: 'hidden',
+                            wordWrap: 'break-word',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 6,
+                            WebkitBoxOrient: 'vertical'
+                        }}>
+                            {summary}
                         </div>
                     </div>
                 )
@@ -66,7 +102,7 @@ const createTimelineFlow = (markdownContent) => {
                 width: 400,
                 height: 180,
                 color: '#e2e8f0',
-                fontSize: '13px',
+                fontSize: '12px',
                 boxShadow: '0 0 30px rgba(247, 37, 133, 0.6), 0 0 60px rgba(247, 37, 133, 0.3)'
             }
         });
@@ -99,15 +135,34 @@ const createTimelineFlow = (markdownContent) => {
             const entityNodeId = `entity-${nodeId++}`;
             const xOffset = (entityIndex % 4) * 220 - 330; // Spread entities horizontally
             
+            // Truncate long entity values
+            const displayValue = entity.value.length > 20 ? entity.value.substring(0, 20) + '...' : entity.value;
+            
             nodes.push({
                 id: entityNodeId,
                 type: 'default',
                 position: { x: 600 + xOffset, y: yPosition + 250 },
                 data: { 
                     label: (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px' }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            padding: '8px 12px',
+                            height: '34px',
+                            overflow: 'hidden'
+                        }}>
                             {getEntityIcon(entity.type)}
-                            <span style={{ fontSize: '12px', fontWeight: '600' }}>{entity.value}</span>
+                            <span style={{ 
+                                fontSize: '12px', 
+                                fontWeight: '600',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '140px'
+                            }} title={entity.value}>
+                                {displayValue}
+                            </span>
                         </div>
                     )
                 },
@@ -355,7 +410,7 @@ const IncidentReport = () => {
 
             {/* Header */}
             <div className="cyber-container p-8 m-6">
-                <div className="text-center">
+                <div className="text-center mb-8">
                     <div className="flex items-center justify-center mb-6">
                         <FaShieldAlt className="text-cyberpunk-accent text-4xl mr-4" />
                         <h1 className="text-5xl font-black text-cyberpunk-accent">
@@ -366,10 +421,10 @@ const IncidentReport = () => {
                     
                     <div className="flex justify-center gap-4 mb-6">
                         <div className="bg-red-600 px-4 py-2 rounded border-2 border-red-400">
-                            <span className="text-red-100 font-bold text-sm">THREAT LEVEL: CRITICAL</span>
+                            <span className="text-red-100 font-bold text-sm">INCIDENT SEVERITY: CRITICAL</span>
                         </div>
                         <div className="bg-orange-600 px-4 py-2 rounded border-2 border-orange-400">
-                            <span className="text-orange-100 font-bold text-sm">CLASSIFICATION: TOP SECRET</span>
+                            <span className="text-orange-100 font-bold text-sm">PRIORITY: HIGH</span>
                         </div>
                     </div>
                     
@@ -377,13 +432,53 @@ const IncidentReport = () => {
                         Interactive timeline reconstruction of multi-stage cyber attack
                     </p>
                 </div>
-            </div>
 
-            {/* Executive Summary */}
-            <div className="mx-6 mb-8">
-                <div className="cyber-container p-6">
-                    <div className="prose prose-invert max-w-none">
-                        <ReactMarkdown>{preTimelineContent}</ReactMarkdown>
+                {/* Executive Summary - Compact Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 className="text-2xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+                            Executive Summary
+                        </h3>
+                        <div className="prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown>{preTimelineContent.split('## Executive Summary')[1]?.split('## Timeline of Events')[0] || preTimelineContent}</ReactMarkdown>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 className="text-2xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+                            Incident Overview
+                        </h3>
+                        <div className="space-y-4 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Date Range:</span>
+                                <span className="text-cyberpunk-primary">May 17-19, 2025</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Target Host:</span>
+                                <span className="text-cyberpunk-primary">EC2AMAZ-OSH4IUQ</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Compromised User:</span>
+                                <span className="text-cyberpunk-primary">ATTACKRANGE\jl.picard</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Attack Vector:</span>
+                                <span className="text-cyberpunk-primary">ClickFix Social Engineering</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">C2 Infrastructure:</span>
+                                <span className="text-cyberpunk-primary">172.31.7.63:4444</span>
+                            </div>
+                            <div className="border-t border-cyberpunk-secondary/30 pt-4 mt-4">
+                                <h4 className="text-cyberpunk-accent font-semibold mb-2">Key Attack Components:</h4>
+                                <ul className="text-cyberpunk-primary text-xs space-y-1">
+                                    <li>• Remote Management Tool (AnyDesk)</li>
+                                    <li>• Process Injection Techniques</li>
+                                    <li>• Credential Theft (Rubeus, BloodHound)</li>
+                                    <li>• Registry Persistence Mechanisms</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
