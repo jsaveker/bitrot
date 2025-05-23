@@ -14,9 +14,12 @@ import 'reactflow/dist/style.css';
 import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt, FaSkull, FaShieldAlt, FaCrosshairs, FaArrowLeft, FaRegClock, FaPlusCircle, FaMinusCircle } from 'react-icons/fa';
 
 const EVENT_NODE_WIDTH = 300;
-const EVENT_NODE_BASE_HEIGHT = 80;
-const EVENT_NODE_SUMMARY_MAX_HEIGHT = 45;
-const EVENT_NODE_DETAILS_MAX_HEIGHT = 150;
+const EVENT_NODE_BASE_HEIGHT_TITLE_TIME = 40; // Approx height for title + timestamp + top/bottom padding
+const EVENT_NODE_LINE_HEIGHT_SUMMARY = 12; // text-2xs line-height
+const EVENT_NODE_LINE_HEIGHT_DETAILS = 14; // text-xs line-height
+const EVENT_NODE_MAX_SUMMARY_LINES = 3;
+const EVENT_NODE_SUMMARY_CALC_HEIGHT = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (EVENT_NODE_MAX_SUMMARY_LINES * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 20; // +20 for button & padding
+const EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT = 150; // Max scrollable height for details
 const ENTITY_NODE_WIDTH = 180;
 const ENTITY_NODE_HEIGHT = 45;
 const VERTICAL_GAP_EVENT = 150;
@@ -91,7 +94,7 @@ const createTimelineFlow = (markdownContent) => {
     let yPosition = 80;
     let lastActionNodeId = null; 
     const xPositionMain = 350;
-    const xOffsetEntity = EVENT_NODE_WIDTH / 2 + 30;
+    const xOffsetEntity = EVENT_NODE_WIDTH / 2 + 30 + ENTITY_NODE_WIDTH / 2; // Adjusted for entity width
 
     const timelineSectionMatch = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
     if (!timelineSectionMatch || !timelineSectionMatch[1]) return { nodes, edges };
@@ -124,32 +127,66 @@ const createTimelineFlow = (markdownContent) => {
                     fullDetails: match[3] ? match[3].trim().replace(/^- /gm, '  ') : '',
                 }));
             } else if (groupTitleForContext) {
-                currentGroupActions.push({
-                    title: groupTitleForContext,
-                    timestamp: groupTimestampFallback,
-                    fullDetails: groupContentAboveActions.trim().replace(/^- /gm, '  '),
+                const groupNodeId = `group-action-${nodeIdCounter++}`;
+                const groupSummary = groupContentAboveActions.substring(0,100) + (groupContentAboveActions.length > 100 ? '...' : '');
+                const summaryLines = Math.min(EVENT_NODE_MAX_SUMMARY_LINES, Math.ceil(groupSummary.length / (EVENT_NODE_WIDTH / 7)));
+                const calculatedInitialHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (summaryLines * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 25;
+
+                nodes.push({
+                    id: groupNodeId,
+                    type: 'eventNode',
+                    position: {x: xPositionMain, y: yPosition},
+                    data: {
+                        title: groupTitleForContext,
+                        timestamp: groupTimestampFallback,
+                        summary: groupSummary,
+                        fullDetails: groupContentAboveActions, // Store full content for expansion
+                        isExpanded: false,
+                        initialHeight: calculatedInitialHeight,
+                    },
+                    style: { ...NODE_STYLES.EVENT, height: calculatedInitialHeight, width: EVENT_NODE_WIDTH -100, background: '#f8fafc', borderColor: '#cbd5e1' },
                 });
+                
+                if (lastActionNodeId) {
+                    edges.push({
+                        id: `edge-${lastActionNodeId}-to-${groupNodeId}`,
+                        source: lastActionNodeId,
+                        target: groupNodeId,
+                        type: 'smoothstep',
+                        style: { stroke: '#b0b8c5', strokeWidth: 1.2, opacity: 0.9 },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b8c5', width:10, height:10 },
+                    });
+                }
+                lastActionNodeId = groupNodeId;
+                yPosition += calculatedInitialHeight + (VERTICAL_GAP_EVENT / 1.8);
             }
 
             currentGroupActions.forEach(action => {
                 const summary = action.fullDetails.split(/\r?\n\r?\n/)[0].substring(0, 100) + (action.fullDetails.length > 100 ? '...' : '');
                 const actionNodeId = `action-${nodeIdCounter++}`;
-                let actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(summary.length / (EVENT_NODE_WIDTH / 7)) -1) * 14;
-                actionNodeHeight = Math.min(actionNodeHeight, EVENT_NODE_BASE_HEIGHT + EVENT_NODE_SUMMARY_MAX_HEIGHT);
+                
+                // Calculate initial height based on summary content fitting EVENT_NODE_MAX_SUMMARY_LINES
+                const summaryLines = Math.min(EVENT_NODE_MAX_SUMMARY_LINES, Math.ceil(summary.length / (EVENT_NODE_WIDTH / 7))); // Approx chars per line
+                const calculatedInitialHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (summaryLines * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 25; // +25 for button/padding
 
                 nodes.push({
                     id: actionNodeId,
-                    type: 'default',
+                    type: 'eventNode', // Use custom node type
                     position: { x: xPositionMain, y: yPosition },
                     data: { 
                         title: action.title,
                         timestamp: action.timestamp,
-                        summary: summary,
+                        summary: summary, // Store summary for initial display
                         fullDetails: action.fullDetails,
-                        isExpanded: false,
-                        initialHeight: actionNodeHeight 
+                        isExpanded: false, // Start collapsed
+                        initialHeight: calculatedInitialHeight, // Store calculated initial height
+                        // onToggleExpand will be added in the main component
                     },
-                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 100 },
+                    style: { 
+                        ...NODE_STYLES.EVENT, 
+                        height: calculatedInitialHeight, // Set initial height
+                        width: EVENT_NODE_WIDTH 
+                    },
                 });
 
                 if (lastActionNodeId) {
@@ -170,12 +207,15 @@ const createTimelineFlow = (markdownContent) => {
                     const entityNodeId = `entity-${nodeIdCounter++}`;
                     const styleFn = NODE_STYLES[entity.type] || NODE_STYLES.DEFAULT_ENTITY;
                     const nodeStyle = styleFn(entity.value);
-                    const entityX = xPositionMain + ((entityIdx % 2 === 0) ? -xOffsetEntity : xOffsetEntity );
-                    let entityY = yPosition + (actionNodeHeight / 2) - (ENTITY_NODE_HEIGHT / 2);
+                    
+                    const entityX = xPositionMain + ((entityIdx % 2 === 0) ? -xOffsetEntity : xOffsetEntity);
+                    let entityY = yPosition + (calculatedInitialHeight / 2) - (ENTITY_NODE_HEIGHT / 2);
                     if(extractedEntities.length > 1){
-                        const staggerAmount = (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY) * 0.6;
-                        entityY += (Math.floor(entityIdx/2)) * staggerAmount * ( (entityIdx%2 === 0) ? -1 : 1 ) - ( (extractedEntities.length % 2 === 0 && entityIdx >= extractedEntities.length -2) ? staggerAmount/2 : 0) ;
+                        const totalEntitiesHeight = extractedEntities.length * ENTITY_NODE_HEIGHT + (extractedEntities.length - 1) * VERTICAL_SPACING_ENTITY;
+                        const startY = yPosition + (calculatedInitialHeight / 2) - (totalEntitiesHeight / 2);
+                        entityY = startY + entityIdx * (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY);
                     }
+                    
                     nodes.push({
                         id: entityNodeId,
                         data: { label: nodeStyle.label }, 
@@ -192,38 +232,40 @@ const createTimelineFlow = (markdownContent) => {
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b8c5', width:10, height:10 },
                     });
                 });
-                yPosition += actionNodeHeight + (VERTICAL_GAP_EVENT / 2); 
+                yPosition += calculatedInitialHeight + (VERTICAL_GAP_EVENT / 1.8); // Adjust Y based on actual initial height
             });
         });
     });
     return { nodes, edges };
 };
 
-const EventNode = ({ data }) => {
+const EventNode = ({ data, id }) => { // Changed id prop to data.id for consistency, but ReactFlow passes id directly
+    const { title, timestamp, summary, fullDetails, isExpanded, onToggleExpand } = data;
     return (
         <div className="p-2.5 text-left" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div className="flex items-center mb-1.5">
                 <FaRegClock className="text-slate-400 mr-1.5 flex-shrink-0" size="0.75em" />
-                <span className="text-2xs text-slate-500 font-medium tracking-wide">{data.timestamp}</span>
+                <span className="text-2xs text-slate-500 font-medium tracking-wide">{timestamp}</span>
             </div>
             <h3 
                 className="text-xs font-semibold text-slate-700 mb-1.5 leading-tight cursor-pointer hover:text-blue-600"
-                title={data.title}
+                title={title}
+                onClick={() => onToggleExpand(id)} // Make title clickable to expand/collapse
             >
-                {data.title.length > 45 ? data.title.substring(0,42)+'...':data.title}
+                {title.length > 45 ? title.substring(0,42)+'...':title}
             </h3>
             <div 
                 className="text-2xs text-slate-600 leading-snug overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-1"
-                style={{ flexGrow: 1, maxHeight: data.isExpanded ? EVENT_NODE_DETAILS_MAX_HEIGHT : EVENT_NODE_SUMMARY_MAX_HEIGHT }}
+                style={{ flexGrow: 1, maxHeight: isExpanded ? EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT : EVENT_NODE_SUMMARY_CALC_HEIGHT - 10 /* Adjust for button */ }}
             >
-                {data.isExpanded ? data.fullDetails : data.summary}
+                {isExpanded ? fullDetails : summary}
             </div>
             <button 
-                onClick={() => data.onToggleExpand(data.id)} 
-                className="text-2xs text-blue-500 hover:text-blue-700 mt-1.5 flex items-center focus:outline-none"
+                onClick={() => onToggleExpand(id)} 
+                className="text-2xs text-blue-500 hover:text-blue-700 mt-1.5 flex items-center focus:outline-none self-start"
             >
-                {data.isExpanded ? <FaMinusCircle className="mr-1" /> : <FaPlusCircle className="mr-1" />} 
-                {data.isExpanded ? 'Collapse' : 'Expand'}
+                {isExpanded ? <FaMinusCircle className="mr-1" /> : <FaPlusCircle className="mr-1" />} 
+                {isExpanded ? 'Collapse' : 'Expand Details'}
             </button>
         </div>
     );
@@ -247,14 +289,28 @@ const IncidentReport = () => {
     }, eds)), []);
 
     const handleToggleExpand = useCallback((nodeId) => {
-        setNodes((nds) => 
-            nds.map((node) => {
-                if (node.id === nodeId) {
+        setNodes((prevNodes) => 
+            prevNodes.map((node) => {
+                if (node.id === nodeId && (node.type === 'eventNode' || node.id.startsWith('action-') || node.id.startsWith('group-action-'))) {
                     const isExpanded = !node.data.isExpanded;
-                    let newHeight = node.data.initialHeight;
+                    let newHeight;
                     if (isExpanded) {
-                        const detailLines = Math.ceil((node.data.fullDetails?.length || 0) / (EVENT_NODE_WIDTH / 8));
-                        newHeight = EVENT_NODE_BASE_HEIGHT + Math.min(detailLines * 14, EVENT_NODE_DETAILS_MAX_HEIGHT) + 20;
+                        // Estimate height for full details dynamically
+                        const tempDiv = document.createElement('div');
+                        // Use a style that mimics the node's text content area for better estimation
+                        tempDiv.style.width = `${(NODE_STYLES.EVENT.width || EVENT_NODE_WIDTH) - 100 - 30}px`; // width - padding
+                        tempDiv.style.fontSize = '0.6875rem'; // text-2xs
+                        tempDiv.style.lineHeight = '1.25'; // leading-snug
+                        tempDiv.style.fontFamily = 'Inter, sans-serif';
+                        tempDiv.style.whiteSpace = 'pre-wrap';
+                        tempDiv.style.wordBreak = 'break-word';
+                        tempDiv.innerText = node.data.fullDetails;
+                        document.body.appendChild(tempDiv); // Needs to be in DOM for getComputedStyle/scrollHeight
+                        const contentHeight = tempDiv.scrollHeight;
+                        document.body.removeChild(tempDiv);
+                        newHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + Math.min(contentHeight, EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT) + 25; // +25 for button/padding
+                    } else {
+                        newHeight = node.data.initialHeight;
                     }
                     return { 
                         ...node, 
@@ -265,6 +321,8 @@ const IncidentReport = () => {
                 return node;
             })
         );
+        // Trigger a re-layout or ensure subsequent nodes are pushed IF NECESSARY
+        // For now, we rely on initial generous spacing.
     }, []);
 
     useEffect(() => {
@@ -279,8 +337,8 @@ const IncidentReport = () => {
                 const nodesWithHandler = flowNodes.map(n => ({
                     ...n,
                     type: n.id.startsWith('action-') || n.id.startsWith('group-action-') ? 'eventNode' : 'default',
-                    data: n.id.startsWith('action-') || n.id.startsWith('group-action-') 
-                          ? { ...n.data, onToggleExpand: handleToggleExpand }
+                    data: (n.id.startsWith('action-') || n.id.startsWith('group-action-')) 
+                          ? { ...n.data, onToggleExpand: handleToggleExpand } 
                           : n.data
                 }));
                 setNodes(nodesWithHandler);
