@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-cyberpunk-darker text-white font-cyber overflow-hidden;
+    @apply bg-cyberpunk-darker text-white font-cyber;
   }
 }
 
