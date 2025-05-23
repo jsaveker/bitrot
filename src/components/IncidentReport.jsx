@@ -415,7 +415,7 @@ const IncidentReport = () => {
             {/* Main Content Layout - Side by Side */}
             <div className="mx-6 mb-8 grid grid-cols-12 gap-6">
                 {/* Left Sidebar - Executive Summary & Overview */}
-                <div className="col-span-4 space-y-6">
+                <div className="col-span-3 space-y-6">
                     {/* Executive Summary */}
                     <div className="cyber-container p-6">
                         <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
@@ -465,8 +465,60 @@ const IncidentReport = () => {
                     </div>
                 </div>
 
+                {/* Risk Assessment - New Column */}
+                <div className="col-span-2">
+                    <div className="cyber-container p-6 h-fit">
+                        <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2 text-center">
+                            Risk Assessment
+                        </h3>
+                        <div className="space-y-4">
+                            {/* Severity */}
+                            <div className="text-center">
+                                <div className="text-xs text-cyberpunk-secondary mb-1">Severity</div>
+                                <div className="bg-red-600 px-3 py-2 rounded border-2 border-red-400 text-white font-bold text-sm">
+                                    CRITICAL
+                                </div>
+                            </div>
+                            
+                            {/* Scope */}
+                            <div className="text-center">
+                                <div className="text-xs text-cyberpunk-secondary mb-1">Scope</div>
+                                <div className="bg-orange-600 px-3 py-2 rounded border-2 border-orange-400 text-white font-bold text-sm">
+                                    HIGH
+                                </div>
+                            </div>
+
+                            {/* Impact */}
+                            <div className="text-center">
+                                <div className="text-xs text-cyberpunk-secondary mb-1">Impact</div>
+                                <div className="bg-orange-600 px-3 py-2 rounded border-2 border-orange-400 text-white font-bold text-sm">
+                                    HIGH
+                                </div>
+                            </div>
+
+                            {/* Sophistication */}
+                            <div className="text-center">
+                                <div className="text-xs text-cyberpunk-secondary mb-1">Sophistication</div>
+                                <div className="bg-orange-600 px-3 py-2 rounded border-2 border-orange-400 text-white font-bold text-sm">
+                                    HIGH
+                                </div>
+                            </div>
+
+                            {/* Overall Risk */}
+                            <div className="border-t border-cyberpunk-accent/30 pt-3 mt-4">
+                                <div className="text-center">
+                                    <div className="text-sm text-cyberpunk-accent mb-2 font-semibold">Overall Risk</div>
+                                    <div className="bg-red-700 px-4 py-3 rounded-lg border-3 border-red-400 text-white font-black text-lg animate-pulse">
+                                        CRITICAL
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Right Side - Technical Analysis Visualization */}
-                <div className="col-span-8">
+                <div className="col-span-7">
                     <h2 className="timeline-header text-4xl font-black text-cyberpunk-accent text-center mb-6 border-b-2 border-cyberpunk-accent/30 pb-4">
                         TECHNICAL ANALYSIS BREAKDOWN
                     </h2>
@@ -492,13 +544,25 @@ const IncidentReport = () => {
                 </div>
             </div>
 
+            {/* Timeline of Events */}
+            {sections[1] && (
+                <div className="mx-6 mb-8">
+                    <div className="cyber-container p-6">
+                        <div className="prose prose-invert max-w-none">
+                            <h2 className="text-3xl font-bold text-cyberpunk-accent mb-6">Timeline of Events</h2>
+                            <ReactMarkdown>{sections[1].split('## Technical Analysis')[0]}</ReactMarkdown>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Technical Analysis */}
             {postTimelineContent && (
                 <div className="mx-6 mb-8">
                     <div className="cyber-container p-6">
                         <div className="prose prose-invert max-w-none">
                             <h2 className="text-3xl font-bold text-cyberpunk-accent mb-6">Technical Analysis</h2>
-                            <ReactMarkdown>{postTimelineContent}</ReactMarkdown>
+                            <ReactMarkdown>{postTimelineContent.split('## MITRE ATT&CK Mapping')[0]}</ReactMarkdown>
                         </div>
                     </div>
                 </div>
