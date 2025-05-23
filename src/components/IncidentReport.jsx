@@ -13,249 +13,227 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt, FaSkull, FaShieldAlt, FaCrosshairs } from 'react-icons/fa';
 
-// Simple timeline approach - create a vertical flow
-const createTimelineFlow = (markdownContent) => {
+// Technical Analysis approach - create a hierarchical flow
+const createTechnicalAnalysisFlow = (markdownContent) => {
     const nodes = [];
     const edges = [];
     let nodeId = 1;
 
-    // Parse the markdown for timeline events
-    const timelineSection = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
-    if (!timelineSection) return { nodes: [], edges: [] };
+    // Parse the markdown for technical analysis
+    const technicalSection = markdownContent.match(/## Technical Analysis([\s\S]*?)(?=## |$)/);
+    if (!technicalSection) return { nodes: [], edges: [] };
 
-    const timelineText = timelineSection[1];
-    
-    // Extract events with timestamps
-    const eventMatches = timelineText.match(/#### [^#][\s\S]*?(?=####|### |## |$)/g);
-    if (!eventMatches) return { nodes: [], edges: [] };
+    // Define attack categories and their details
+    const attackCategories = [
+        {
+            title: "Initial Access Vector",
+            description: "ClickFix social engineering, PowerShell execution",
+            tools: ["ClickFix Technique", "PowerShell Command", "fixer.exe", "revshelled.exe"],
+            color: "#dc2626",
+            position: { x: 200, y: 100 }
+        },
+        {
+            title: "Command and Control",
+            description: "Remote access channel establishment",
+            tools: ["C2 Channel", "172.31.7.63:4444", "Remote Commands"],
+            color: "#ea580c",
+            position: { x: 600, y: 100 }
+        },
+        {
+            title: "Lateral Movement",
+            description: "Persistence and system access maintenance",
+            tools: ["AnyDesk RMM", "Living off Land", "C:\\Windows\\Temp\\"],
+            color: "#ca8a04",
+            position: { x: 1000, y: 100 }
+        },
+        {
+            title: "Process Injection",
+            description: "Code injection into legitimate processes",
+            tools: ["anydesk.exe injection", "cmd.exe injection", "Memory Access 0x1fffff"],
+            color: "#16a34a",
+            position: { x: 200, y: 400 }
+        },
+        {
+            title: "Credential Theft",
+            description: "Credential harvesting and enumeration",
+            tools: ["Rubeus", "BloodHound", "Kerberoast", "hashes.txt"],
+            color: "#2563eb",
+            position: { x: 600, y: 400 }
+        },
+        {
+            title: "Registry Persistence",
+            description: "System-level persistence mechanisms",
+            tools: ["Service Registry", "DLL Loading", "Tcpip Parameters", "Interface Keys"],
+            color: "#7c3aed",
+            position: { x: 1000, y: 400 }
+        }
+    ];
 
-    let yPosition = 100;
-    let previousNodeId = null;
-
-    eventMatches.forEach((eventBlock, index) => {
-        const lines = eventBlock.trim().split('\n');
-        const titleLine = lines[0].replace(/^####\s*/, '');
-        const content = lines.slice(1).join('\n').trim();
-        
-        // Extract time from title
-        const timeMatch = titleLine.match(/\(([^)]+)\)/);
-        const time = timeMatch ? timeMatch[1] : '';
-        const title = titleLine.replace(/\s*\([^)]*\)/, '');
-
-        // Create main event node - make it bigger and more prominent
-        const currentNodeId = `event-${nodeId++}`;
-        
-        // Better text handling for long content
-        const displayContent = content.length > 280 ? content.substring(0, 280) + '...' : content;
-        const contentLines = displayContent.split('\n');
-        const summary = contentLines.slice(0, 6).join('\n'); // Limit to 6 lines max
+    // Create parent nodes for each category
+    attackCategories.forEach((category, index) => {
+        const parentNodeId = `category-${nodeId++}`;
         
         nodes.push({
-            id: currentNodeId,
+            id: parentNodeId,
             type: 'default',
-            position: { x: 600, y: yPosition },
+            position: category.position,
             data: { 
                 label: (
-                    <div style={{ padding: '16px', textAlign: 'left', height: '148px', overflow: 'hidden' }}>
+                    <div style={{ padding: '12px', textAlign: 'center', height: '120px', overflow: 'hidden' }}>
                         <strong style={{ 
-                            color: '#f72585', 
-                            fontSize: '15px', 
+                            color: '#ffffff', 
+                            fontSize: '12px', 
                             display: 'block', 
                             marginBottom: '6px',
-                            lineHeight: '1.2',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            lineHeight: '1.2'
                         }}>
-                            {title.length > 35 ? title.substring(0, 35) + '...' : title}
+                            {category.title}
                         </strong>
-                        {time && (
-                            <div style={{ 
-                                color: '#64748b', 
-                                fontSize: '11px', 
-                                marginBottom: '10px', 
-                                fontWeight: '500' 
-                            }}>
-                                {time}
-                            </div>
-                        )}
                         <div style={{ 
                             color: '#e2e8f0', 
-                            fontSize: '12px', 
-                            lineHeight: '1.3', 
-                            height: '90px',
+                            fontSize: '10px', 
+                            lineHeight: '1.3',
+                            height: '60px',
                             overflow: 'hidden',
-                            wordWrap: 'break-word',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 6,
-                            WebkitBoxOrient: 'vertical'
+                            wordWrap: 'break-word'
                         }}>
-                            {summary}
+                            {category.description}
                         </div>
                     </div>
                 )
             },
             style: {
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
-                border: '3px solid #f72585',
+                background: `linear-gradient(135deg, ${category.color} 0%, ${category.color}dd 100%)`,
+                border: '3px solid #ffffff',
                 borderRadius: '12px',
-                width: 400,
-                height: 180,
-                color: '#e2e8f0',
-                fontSize: '12px',
-                boxShadow: '0 0 30px rgba(247, 37, 133, 0.6), 0 0 60px rgba(247, 37, 133, 0.3)'
+                width: 240,
+                height: 120,
+                color: '#ffffff',
+                fontSize: '10px',
+                boxShadow: `0 0 20px ${category.color}80, 0 0 40px ${category.color}40`
             }
         });
 
-        // Connect to previous event
-        if (previousNodeId) {
-            edges.push({
-                id: `edge-${previousNodeId}-${currentNodeId}`,
-                source: previousNodeId,
-                target: currentNodeId,
-                type: 'smoothstep',
-                animated: true,
-                style: {
-                    stroke: '#f72585',
-                    strokeWidth: 4,
-                    filter: 'drop-shadow(0 0 6px #f72585)'
-                },
-                markerEnd: {
-                    type: MarkerType.ArrowClosed,
-                    color: '#f72585',
-                    width: 25,
-                    height: 25
-                }
-            });
-        }
-
-        // Add entity nodes for this event - make them bigger too
-        const entities = extractSimpleEntities(content);
-        entities.forEach((entity, entityIndex) => {
-            const entityNodeId = `entity-${nodeId++}`;
-            const xOffset = (entityIndex % 4) * 220 - 330; // Spread entities horizontally
-            
-            // Truncate long entity values
-            const displayValue = entity.value.length > 20 ? entity.value.substring(0, 20) + '...' : entity.value;
+        // Create child nodes for tools/techniques
+        category.tools.forEach((tool, toolIndex) => {
+            const childNodeId = `tool-${nodeId++}`;
+            const xOffset = (toolIndex % 2) * 140 - 70;
+            const yOffset = Math.floor(toolIndex / 2) * 80 + 180;
             
             nodes.push({
-                id: entityNodeId,
+                id: childNodeId,
                 type: 'default',
-                position: { x: 600 + xOffset, y: yPosition + 250 },
+                position: { 
+                    x: category.position.x + xOffset, 
+                    y: category.position.y + yOffset 
+                },
                 data: { 
                     label: (
                         <div style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            gap: '8px', 
-                            padding: '8px 12px',
-                            height: '34px',
-                            overflow: 'hidden'
+                            justifyContent: 'center',
+                            padding: '6px 8px',
+                            height: '50px',
+                            overflow: 'hidden',
+                            textAlign: 'center'
                         }}>
-                            {getEntityIcon(entity.type)}
                             <span style={{ 
-                                fontSize: '12px', 
+                                fontSize: '9px', 
                                 fontWeight: '600',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '140px'
-                            }} title={entity.value}>
-                                {displayValue}
+                                wordWrap: 'break-word',
+                                lineHeight: '1.2',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical'
+                            }} title={tool}>
+                                {tool}
                             </span>
                         </div>
                     )
                 },
                 style: {
-                    background: getEntityColor(entity.type),
-                    border: '2px solid rgba(255,255,255,0.4)',
+                    background: `linear-gradient(135deg, ${category.color}aa 0%, ${category.color}77 100%)`,
+                    border: '2px solid rgba(255,255,255,0.6)',
                     borderRadius: '8px',
-                    width: 200,
+                    width: 130,
                     height: 50,
                     color: 'white',
-                    fontSize: '11px',
-                    boxShadow: '0 0 15px rgba(0,0,0,0.4)'
+                    fontSize: '9px',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.4)'
                 }
             });
 
-            // Connect entity to event
+            // Connect child to parent
             edges.push({
-                id: `edge-${currentNodeId}-${entityNodeId}`,
-                source: currentNodeId,
-                target: entityNodeId,
+                id: `edge-${parentNodeId}-${childNodeId}`,
+                source: parentNodeId,
+                target: childNodeId,
                 type: 'smoothstep',
                 style: {
-                    stroke: '#64748b',
+                    stroke: category.color,
                     strokeWidth: 2,
                     opacity: 0.8
                 },
                 markerEnd: {
                     type: MarkerType.ArrowClosed,
-                    color: '#64748b',
+                    color: category.color,
                     width: 15,
                     height: 15
                 }
             });
         });
 
-        previousNodeId = currentNodeId;
-        yPosition += 400; // More space between event groups
+        // Connect categories in attack chain order
+        if (index > 0 && index < 3) {
+            const prevCategoryId = `category-${index}`;
+            const currentCategoryId = `category-${index + 1}`;
+            edges.push({
+                id: `edge-chain-${prevCategoryId}-${currentCategoryId}`,
+                source: prevCategoryId,
+                target: currentCategoryId,
+                type: 'smoothstep',
+                animated: true,
+                style: {
+                    stroke: '#f72585',
+                    strokeWidth: 3,
+                    filter: 'drop-shadow(0 0 6px #f72585)'
+                },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#f72585',
+                    width: 20,
+                    height: 20
+                }
+            });
+        }
+        if (index >= 3 && index < 5) {
+            const prevCategoryId = `category-${index}`;
+            const currentCategoryId = `category-${index + 1}`;
+            edges.push({
+                id: `edge-chain-${prevCategoryId}-${currentCategoryId}`,
+                source: prevCategoryId,
+                target: currentCategoryId,
+                type: 'smoothstep',
+                animated: true,
+                style: {
+                    stroke: '#f72585',
+                    strokeWidth: 3,
+                    filter: 'drop-shadow(0 0 6px #f72585)'
+                },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#f72585',
+                    width: 20,
+                    height: 20
+                }
+            });
+        }
     });
 
     return { nodes, edges };
-};
-
-// Simplified entity extraction
-const extractSimpleEntities = (text) => {
-    const entities = [];
-    
-    // Users
-    const userMatches = text.match(/User `([^`]+)`/g);
-    if (userMatches) {
-        userMatches.forEach(match => {
-            const user = match.match(/`([^`]+)`/)[1];
-            entities.push({ type: 'USER', value: user });
-        });
-    }
-
-    // IPs
-    const ipMatches = text.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g);
-    if (ipMatches) {
-        ipMatches.slice(0, 2).forEach(ip => {
-            entities.push({ type: 'IP', value: ip });
-        });
-    }
-
-    // Files
-    const fileMatches = text.match(/`([^`]*\.(exe|dll|ps1|bat))`/gi);
-    if (fileMatches) {
-        fileMatches.slice(0, 2).forEach(match => {
-            const file = match.replace(/`/g, '');
-            entities.push({ type: 'FILE', value: file.split('\\').pop() });
-        });
-    }
-
-    return entities.slice(0, 4); // Limit entities per event
-};
-
-const getEntityIcon = (type) => {
-    switch (type) {
-        case 'USER': return <FaUser className="text-blue-200" />;
-        case 'IP': return <FaNetworkWired className="text-orange-200" />;
-        case 'FILE': return <FaFileAlt className="text-purple-200" />;
-        case 'PROCESS': return <FaBolt className="text-green-200" />;
-        default: return <FaTerminal className="text-gray-200" />;
-    }
-};
-
-const getEntityColor = (type) => {
-    switch (type) {
-        case 'USER': return 'linear-gradient(135deg, #3182CE 0%, #2B6CB0 100%)';
-        case 'IP': return 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)';
-        case 'FILE': return 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)';
-        case 'PROCESS': return 'linear-gradient(135deg, #059669 0%, #047857 100%)';
-        default: return 'linear-gradient(135deg, #4B5563 0%, #374151 100%)';
-    }
 };
 
 const IncidentReport = () => {
@@ -282,7 +260,7 @@ const IncidentReport = () => {
             })
             .then(text => {
                 setMarkdown(text);
-                const { nodes: flowNodes, edges: flowEdges } = createTimelineFlow(text);
+                const { nodes: flowNodes, edges: flowEdges } = createTechnicalAnalysisFlow(text);
                 setNodes(flowNodes);
                 setEdges(flowEdges);
                 setIsLoading(false);
@@ -487,13 +465,13 @@ const IncidentReport = () => {
                     </div>
                 </div>
 
-                {/* Right Side - Timeline Visualization */}
+                {/* Right Side - Technical Analysis Visualization */}
                 <div className="col-span-8">
                     <h2 className="timeline-header text-4xl font-black text-cyberpunk-accent text-center mb-6 border-b-2 border-cyberpunk-accent/30 pb-4">
-                        ATTACK TIMELINE RECONSTRUCTION
+                        TECHNICAL ANALYSIS BREAKDOWN
                     </h2>
                     
-                    <div className="cyber-container" style={{ height: '1200px' }}>
+                    <div className="cyber-container" style={{ height: '800px' }}>
                         <ReactFlow
                             nodes={nodes}
                             edges={edges}
@@ -501,10 +479,10 @@ const IncidentReport = () => {
                             onEdgesChange={onEdgesChange}
                             onConnect={onConnect}
                             fitView
-                            fitViewOptions={{ padding: 0.1 }}
+                            fitViewOptions={{ padding: 0.2 }}
                             minZoom={0.1}
                             maxZoom={2}
-                            defaultZoom={0.8}
+                            defaultZoom={0.9}
                         >
                             <Controls />
                             <MiniMap nodeStrokeWidth={3} zoomable pannable />
