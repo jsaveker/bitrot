@@ -10,112 +10,97 @@ import ReactFlow, {
     MiniMap,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt } from 'react-icons/fa'; // Example icons
 
-const ENTITY_STYLES = {
-    USER: { background: '#3182CE', color: 'white', border: '1px solid #2B6CB0', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    HOST: { background: '#C53030', color: 'white', border: '1px solid #9B2C2C', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    PROCESS: { background: '#2F855A', color: 'white', border: '1px solid #276749', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    FILE: { background: '#B83280', color: 'white', border: '1px solid #8D2460', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    IP_ADDRESS: { background: '#D69E2E', color: 'white', border: '1px solid #B7791F', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    REG_KEY: { background: '#6B46C1', color: 'white', border: '1px solid #553C9A', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    COMMAND: { background: '#00A0B0', color: 'white', border: '1px solid #007A87', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    DEFAULT_ENTITY: { background: '#4A5568', color: 'white', border: '1px solid #2D3748', padding: '4px 7px', fontSize: '0.7rem', whiteSpace: 'normal', wordBreak: 'break-all', maxWidth: '300px' },
-    EVENT_GROUP: {
-        background: 'rgba(26, 32, 44, 0.9)', // Slightly transparent
-        color: '#E2E8F0',
+const NODE_TYPE_STYLES = {
+    EVENT_STAGE: {
+        background: 'rgba(30, 41, 59, 0.9)', // Darker, slightly transparent
+        color: '#cbd5e1', // Lighter text
         border: '2px solid #f72585',
-        boxShadow: '0 0 12px rgba(247, 37, 133, 0.7)',
-        padding: '15px',
-        width: 450, // Increased width
-        fontSize: '1rem',
-        borderRadius: '8px',
+        borderRadius: '12px',
+        boxShadow: '0 0 15px rgba(247, 37, 133, 0.6), 0 0 5px rgba(247, 37, 133, 0.8) inset',
+        padding: '20px',
+        width: 320, // Fixed width for event stage
+        textAlign: 'center',
+        fontSize: '1.1rem',
     },
-    // ACTION style can be added if action nodes are implemented
+    ENTITY_BASE: { // Base style for all small entity nodes
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: '0.75rem',
+        color: 'white',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px', // Space between icon and text
+        minHeight: '36px', // Ensure consistent height
+        maxWidth: '220px', // Max width for entity nodes
+        whiteSpace: 'normal', // Allow text wrapping
+        wordBreak: 'break-all', // Break long words
+    },
+    USER: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#3182CE', borderColor: '#2B6CB0', label: <><FaUser /> {label}</> }),
+    HOST: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#C53030', borderColor: '#9B2C2C', label: <><FaServer /> {label}</> }),
+    PROCESS: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#2F855A', borderColor: '#276749', label: <><FaBolt /> {label}</> }),
+    FILE: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#805AD5', borderColor: '#6B46C1', label: <><FaFileAlt /> {label}</> }),
+    IP_ADDRESS: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#DD6B20', borderColor: '#C05621', label: <><FaNetworkWired /> {label}</> }),
+    REG_KEY: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#D69E2E', borderColor: '#B7791F', label: <><FaKey /> {label}</> }),
+    COMMAND: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#00A0B0', borderColor: '#007A87', width: '280px', /* Wider for commands */ label: <><FaTerminal /> {label.substring(0, 100)}{label.length > 100 ? '...' : ''}</>}),
+    DEFAULT_ENTITY: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#4A5568', borderColor: '#2D3748', label: label }),
 };
 
-const extractEntitiesAndActions = (textBlock, parentNodeId, nodeIdCounterStart) => {
-    const childNodes = [];
-    const childEdges = [];
-    let localNodeId = nodeIdCounterStart;
-    let childYOffset = 30; // Start Y for the first child node, relative to parent's label area
-    const childXOffset = 15; // Consistent X offset for children
-    let totalChildrenHeight = 0;
-    const childNodeSpacing = 5; // Vertical space between child nodes
-    const baseChildNodeHeight = 30; // Approximate height for a single line child node
-
+const extractEntities = (textBlock) => {
+    const entities = [];
     const patterns = {
         USER: /User `([^`]+)`/g,
         HOST: /host `([^`]+)`/g,
-        IP_ADDRESS: /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d{1,5})?)/g,
-        FILE: /([A-Za-z]:\\[^\s:`*?"<>|(),]+)|(\/[^\s:`*?"<>|(),]+)/g,
-        PROCESS: /([a-zA-Z0-9_-]+\.exe)/g,
-        REG_KEY: /HK[LMU]{1,2}\\[^\s(),]+/g,
-        COMMAND: /(powershell\.exe|cmd\.exe)[^\n]*?(?=\n\n|- |\*\*|$)/ig,
+        IP_ADDRESS: /(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?\b)/g, // Stricter IP regex
+        FILE: /(\b[A-Za-z]:\\[^\s:`*?"<>|(),]+(?:\.[a-zA-Z0-9]+)?\b)|(\b\/[^\s:`*?"<>|(),]+\b)/g,
+        PROCESS: /(\b[a-zA-Z0-9_-]+\.exe\b)/g,
+        REG_KEY: /(HK[LMU]{1,2}\\[^\s(),;:!"]+)/g,
+        COMMAND: /(powershell\.exe|cmd\.exe)[^\n]*(?:\n(?!\s*[-*>]))*/ig, // Capture multi-line better
     };
-
-    const addedEntities = new Set(); // To avoid duplicate entity nodes from the same block
+    const addedValues = new Set(); // Avoid duplicate entities from the same block
 
     for (const type in patterns) {
         let match;
         while ((match = patterns[type].exec(textBlock)) !== null) {
             const value = (type === 'FILE' ? (match[1] || match[2]) : match[1] || match[0]).trim();
-            if (value.length < 4 && type !== 'USER') continue;
-            if (addedEntities.has(value)) continue; // Check if this entity string has already been added
-
-            addedEntities.add(value);
-            const id = `detail-node-${localNodeId++}`;
+            if (value.length < 4 && type !== 'USER' && type !== 'IP_ADDRESS') continue;
+            if (addedValues.has(value + type)) continue; // Avoid exact same entity string + type
             
-            // Estimate node height based on text length
-            const estimatedLines = Math.ceil(value.length / 35); // Approx 35 chars per line in small font
-            const nodeHeight = Math.max(baseChildNodeHeight, estimatedLines * 15 + 10); // 15px per line + padding
-
-            childNodes.push({
-                id,
-                data: { label: value },
-                position: { x: childXOffset, y: childYOffset },
-                style: { ...ENTITY_STYLES[type] || ENTITY_STYLES.DEFAULT_ENTITY, height: `${nodeHeight}px` },
-                parentNode: parentNodeId,
-                extent: 'parent', // Confines to parent
-                draggable: true,
-            });
-            childEdges.push({
-                id: `edge-${parentNodeId}-detail-${id}`,
-                source: parentNodeId, // Edge from parent to child
-                target: id,
-                style: { stroke: '#4A5568', strokeWidth: 1 },
-            });
-            childYOffset += nodeHeight + childNodeSpacing;
-            totalChildrenHeight += nodeHeight + childNodeSpacing;
+            entities.push({ type, value });
+            addedValues.add(value + type);
         }
     }
-    return { childNodes, childEdges, nextNodeId: localNodeId, totalChildrenHeight };
+    return entities;
 };
 
 const parseTimelineToFlow = (markdownContent) => {
     const nodes = [];
     const edges = [];
-    let yPos = 50;
+    let yPos = 80; // Initial Y position for the first event stage
     let nodeIdCounter = 1;
-    let lastEventGroupId = null;
+    let lastEventStageNodeId = null;
 
-    const eventGroupHeaderHeight = 80; // Approx height for title, time, and summary text in event group
-    const eventGroupPadding = 15; // From ENTITY_STYLES.EVENT_GROUP.padding
-    const eventGroupGap = 80; // Gap between event groups
+    const eventStageGap = 200; // Increased vertical gap between event stages
+    const entitySpreadRadius = 280; // How far entities spread from the event stage center
+    const entityAngleStep = 30; // Angle step for placing entities radially
 
     const timelineSectionMatch = markdownContent.match(/### May 17, 2025([\s\S]*?)### May 18-19, 2025/);
 
     if (timelineSectionMatch && timelineSectionMatch[1]) {
         const may17EventsText = timelineSectionMatch[1];
-        const events = may17EventsText.trim().split(/\r?\n#### /);
+        const eventBlocks = may17EventsText.trim().split(/\r?\n#### /);
 
-        events.forEach((eventBlock, index) => {
-            if (!eventBlock.trim()) return;
-            const currentEventBlock = index === 0 && !eventBlock.startsWith('####') && events.length > 1 ? eventBlock : eventBlock;
+        eventBlocks.forEach((eventBlockText, index) => {
+            if (!eventBlockText.trim()) return;
+            const currentEventBlock = index === 0 && !eventBlockText.startsWith('####') && eventBlocks.length > 1 ? eventBlockText : eventBlockText;
             const lines = currentEventBlock.trim().split(/\r?\n/);
             const titleLine = lines[0].replace(/^####\s*/, '');
-            const detailsForSummary = lines.slice(1).join('\n').trim(); // Full details for entity extraction
-            const summaryText = detailsForSummary.substring(0, 120) + (detailsForSummary.length > 120 ? '...' : '');
-
+            const detailsFull = lines.slice(1).join('\n').trim();
+            const summaryText = detailsFull.substring(0, 150) + (detailsFull.length > 150 ? '...' : '');
 
             const titleMatch = titleLine.match(/^([^\(]+)\(([^\)]+)\)/);
             let eventTitle = titleLine;
@@ -123,75 +108,124 @@ const parseTimelineToFlow = (markdownContent) => {
             if (titleMatch) {
                 eventTitle = titleMatch[1].trim();
                 try {
-                     eventTime = new Date(Date.UTC(2025, 4, 17, ...titleMatch[2].match(/(\d+)/g).map(Number))).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
-                } catch (e) { console.error("Error parsing time:", titleMatch[2], e); }
+                    eventTime = new Date(Date.UTC(2025, 4, 17, ...titleMatch[2].match(/(\d+)/g).map(Number)))
+                                .toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
+                } catch (e) { console.warn("Error parsing time:", titleMatch[2], e); }
             }
 
-            const eventGroupId = `event-group-${nodeIdCounter++}`;
-            const { childNodes, childEdges, nextNodeId, totalChildrenHeight } = extractEntitiesAndActions(detailsForSummary, eventGroupId, nodeIdCounter);
-            nodeIdCounter = nextNodeId;
+            const eventStageNodeId = `event-stage-${nodeIdCounter++}`;
+            const eventStageX = (index % 2 === 0) ? 200 : 800; // Stagger event stages
             
-            const eventGroupCalculatedHeight = eventGroupHeaderHeight + totalChildrenHeight + (eventGroupPadding * 2);
-
             nodes.push({
-                id: eventGroupId,
-                data: { label: (<div><strong>{eventTitle}</strong><br/><span className="text-xs text-gray-400">{eventTime}</span><hr className="my-2 border-cyberpunk-secondary/30"/><p className="text-xs font-mono whitespace-pre-wrap overflow-auto" style={{maxHeight: '60px'}}>{summaryText}</p></div>) },
-                position: { x: (index % 2 === 0 ? 50 : 600), y: yPos }, // Increased X spacing for staggering
-                style: { ...ENTITY_STYLES.EVENT_GROUP, height: `${eventGroupCalculatedHeight}px` },
-                type: 'default',
+                id: eventStageNodeId,
+                data: { label: (<div><strong>{eventTitle}</strong><br/><span className="text-xs text-gray-400 mt-1">{eventTime}</span><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '80px', overflowY: 'auto'}}>{summaryText}</p></div>) },
+                position: { x: eventStageX, y: yPos },
+                style: NODE_TYPE_STYLES.EVENT_STAGE,
+                type: 'default', // Or a custom type if we add one
             });
 
-            nodes.push(...childNodes.map(cn => ({...cn, position: {...cn.position, y: cn.position.y + eventGroupHeaderHeight - 20 } }))); // Adjust child Y relative to parent content
-            edges.push(...childEdges);
+            const extractedEntities = extractEntities(detailsFull);
+            let currentAngle = -90; // Start placing entities above the event node
 
-            if (lastEventGroupId) {
+            extractedEntities.forEach((entity, entityIndex) => {
+                const entityNodeId = `entity-${nodeIdCounter++}`;
+                const styleFn = NODE_TYPE_STYLES[entity.type] || NODE_TYPE_STYLES.DEFAULT_ENTITY;
+                const nodeStyle = styleFn(entity.value); // Call the function to get style and label with icon
+                
+                // Calculate position for entities around the event stage node
+                // Simple radial layout for now, can be improved
+                const entityX = eventStageX + (NODE_TYPE_STYLES.EVENT_STAGE.width / 2) + Math.cos(currentAngle * Math.PI / 180) * entitySpreadRadius - (nodeStyle.width ? nodeStyle.width / 2 : 100) ;
+                const entityY = yPos + (NODE_TYPE_STYLES.EVENT_STAGE.padding) + Math.sin(currentAngle * Math.PI / 180) * (entitySpreadRadius / 1.5) ; // Y spread is less
+
+                nodes.push({
+                    id: entityNodeId,
+                    data: { label: nodeStyle.label }, // Label with icon comes from styleFn
+                    position: { x: entityX, y: entityY },
+                    style: { ...nodeStyle, label: undefined }, // Remove label from style as it's in data
+                    type: 'default', // Can be custom types later
+                });
                 edges.push({
-                    id: `edge-event-${lastEventGroupId}-to-${eventGroupId}`,
-                    source: lastEventGroupId,
-                    target: eventGroupId,
-                    animated: true,
-                    style: { stroke: '#f72585', strokeWidth: 3, filter: 'drop-shadow(0 0 4px #f72585)' },
-                    markerEnd: { type: 'arrowclosed', color: '#f72585', width: 25, height: 25 },
+                    id: `edge-${eventStageNodeId}-to-${entityNodeId}`,
+                    source: eventStageNodeId,
+                    target: entityNodeId,
                     type: 'smoothstep',
+                    style: { stroke: '#567189', strokeWidth: 1.5, opacity: 0.8 }, // Softer edge for entities
+                    animated: false,
+                });
+                currentAngle += entityAngleStep + (extractedEntities.length > 6 ? 0 : 10); // More spread for fewer entities
+            });
+
+            if (lastEventStageNodeId) {
+                edges.push({
+                    id: `edge-event-${lastEventStageNodeId}-to-${eventStageNodeId}`,
+                    source: lastEventStageNodeId,
+                    target: eventStageNodeId,
+                    type: 'smoothstep',
+                    animated: true,
+                    style: { stroke: '#f72585', strokeWidth: 3.5, filter: 'drop-shadow(0 0 5px #f72585)' },
+                    markerEnd: { type: 'arrowclosed', color: '#f72585', width: 20, height: 20 },
                 });
             }
-            lastEventGroupId = eventGroupId;
-            yPos += eventGroupCalculatedHeight + eventGroupGap;
+            lastEventStageNodeId = eventStageNodeId;
+            // Adjust yPos based on a fixed height per stage + entities, or more dynamic if needed
+            yPos += NODE_TYPE_STYLES.EVENT_STAGE.padding * 2 + 120 + (extractedEntities.length > 0 ? entitySpreadRadius / 1.5 + 50 : 0) + eventStageGap;
         });
     }
 
+    // Placeholder for May 18-19 content - adapt similar logic
     const may1819SectionMatch = markdownContent.match(/### May 18-19, 2025([\s\S]*?)## Technical Analysis/s);
-    if (may1819SectionMatch && may1819SectionMatch[1] && lastEventGroupId) {
-        const detailsForSummary = may1819SectionMatch[1].trim().replace(/^- /gm, '');
-        const summaryText = detailsForSummary.substring(0, 120) + (detailsForSummary.length > 120 ? '...' : '');
-        const eventGroupId = `event-group-${nodeIdCounter++}`;
-
-        const { childNodes, childEdges, nextNodeId, totalChildrenHeight } = extractEntitiesAndActions(detailsForSummary, eventGroupId, nodeIdCounter);
-        nodeIdCounter = nextNodeId;
-        const eventGroupCalculatedHeight = eventGroupHeaderHeight + totalChildrenHeight + (eventGroupPadding * 2);
+    if (may1819SectionMatch && may1819SectionMatch[1] && lastEventStageNodeId) {
+        const detailsFull = may1819SectionMatch[1].trim().replace(/^- /gm, '');
+        const summaryText = detailsFull.substring(0, 150) + (detailsFull.length > 150 ? '...' : '');
+        const eventStageNodeId = `event-stage-${nodeIdCounter++}`;
+        const eventStageX = (nodes.filter(n => n.id.startsWith('event-stage-')).length % 2 === 0) ? 200 : 800;
 
         nodes.push({
-            id: eventGroupId,
-            data: { label: (<div><strong>Continued Activity (May 18-19)</strong><hr className="my-2 border-cyberpunk-secondary/30"/><p className="text-xs font-mono whitespace-pre-wrap overflow-auto" style={{maxHeight: '60px'}}>{summaryText}</p></div>) },
-            position: { x: (nodes.filter(n=>n.id.startsWith('event-group')).length % 2 === 0 ? 50 : 600), y: yPos },
-            style: { ...ENTITY_STYLES.EVENT_GROUP, height: `${eventGroupCalculatedHeight}px` },
-            type: 'default'
+            id: eventStageNodeId,
+            data: { label: (<div><strong>Continued Activity (May 18-19)</strong><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '80px', overflowY: 'auto'}}>{summaryText}</p></div>) },
+            position: { x: eventStageX, y: yPos },
+            style: NODE_TYPE_STYLES.EVENT_STAGE,
+            type: 'default',
+        });
+
+        const extractedEntities = extractEntities(detailsFull);
+        let currentAngle = -90;
+        extractedEntities.forEach((entity, entityIndex) => {
+            const entityNodeId = `entity-${nodeIdCounter++}`;
+            const styleFn = NODE_TYPE_STYLES[entity.type] || NODE_TYPE_STYLES.DEFAULT_ENTITY;
+            const nodeStyle = styleFn(entity.value);
+            const entityX = eventStageX + (NODE_TYPE_STYLES.EVENT_STAGE.width / 2) + Math.cos(currentAngle * Math.PI / 180) * entitySpreadRadius - (nodeStyle.width ? nodeStyle.width / 2 : 100);
+            const entityY = yPos + (NODE_TYPE_STYLES.EVENT_STAGE.padding) + Math.sin(currentAngle * Math.PI / 180) * (entitySpreadRadius / 1.5);
+
+            nodes.push({
+                id: entityNodeId,
+                data: { label: nodeStyle.label },
+                position: { x: entityX, y: entityY },
+                style: { ...nodeStyle, label: undefined },
+                type: 'default',
+            });
+            edges.push({
+                id: `edge-${eventStageNodeId}-to-${entityNodeId}`,
+                source: eventStageNodeId,
+                target: entityNodeId,
+                type: 'smoothstep',
+                style: { stroke: '#567189', strokeWidth: 1.5, opacity: 0.8 },
+                animated: false,
+            });
+            currentAngle += entityAngleStep + (extractedEntities.length > 6 ? 0 : 10);
         });
         
-        nodes.push(...childNodes.map(cn => ({...cn, position: {...cn.position, y: cn.position.y + eventGroupHeaderHeight - 20 } })));
-        edges.push(...childEdges);
-
         edges.push({
-            id: `edge-event-${lastEventGroupId}-to-${eventGroupId}`,
-            source: lastEventGroupId,
-            target: eventGroupId,
-            animated: true,
-            style: { stroke: '#f72585', strokeWidth: 3, filter: 'drop-shadow(0 0 4px #f72585)' },
-            markerEnd: { type: 'arrowclosed', color: '#f72585', width: 25, height: 25 },
+            id: `edge-event-${lastEventStageNodeId}-to-${eventStageNodeId}`,
+            source: lastEventStageNodeId,
+            target: eventStageNodeId,
             type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#f72585', strokeWidth: 3.5, filter: 'drop-shadow(0 0 5px #f72585)' },
+            markerEnd: { type: 'arrowclosed', color: '#f72585', width: 20, height: 20 },
         });
-         yPos += eventGroupCalculatedHeight + eventGroupGap; // Add this line
     }
+
     return { nodes, edges };
 };
 
@@ -203,7 +237,7 @@ const IncidentReport = () => {
 
     const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
     const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
-    const onConnect = useCallback((connection) => setEdges((eds) => addEdge({ ...connection, type: 'smoothstep', animated: true, style: {stroke: '#f72585'} }, eds)), []);
+    const onConnect = useCallback((connection) => setEdges((eds) => addEdge({ ...connection, type: 'smoothstep', animated: false, style: {stroke: '#7dd3fc', strokeWidth:1.5} }, eds)), []);
 
 
     useEffect(() => {
@@ -229,7 +263,7 @@ const IncidentReport = () => {
     }
 
     if (!markdown || !nodes.length) { 
-        return <div className="p-8 bg-gray-900 text-green-400 min-h-screen font-mono">Loading incident data and constructing timeline...</div>;
+        return <div className="p-8 bg-gray-900 text-green-400 min-h-screen font-mono">Deconstructing timeline from signal fragments...</div>;
     }
 
     const sections = markdown.split('## Timeline of Events');
@@ -243,51 +277,54 @@ const IncidentReport = () => {
 
     return (
         <div className="bg-black text-cyberpunk-primary min-h-screen p-4 md:p-8 font-['Hack',_monospace]">
-            <style>{`
+            <style>{/* Consolidated and refined styles */`
                 .react-flow__node {
                     font-family: 'Hack', monospace;
-                    /* box-shadow: 0 0 10px #f72585, 0 0 5px #f72585 inset; */ /* Moved specific shadow to EVENT_GROUP */
-                    border-radius: 6px; 
-                }
-                .react-flow__node-default {
-                     border-radius: 8px; /* For Event Group */
-                }
-                .react-flow__edge-path {
-                    /* filter: drop-shadow(0 0 3px #f72585); Removed, direct style on edge */
+                    border-radius: 8px; 
                 }
                 .react-flow__attribution { display: none; } 
                 .react-flow__minimap {
-                    background-color: rgba(13, 17, 23, 0.8) !important;
+                    background-color: rgba(13, 17, 23, 0.9) !important;
                     border: 1px solid #f72585 !important;
+                    border-radius: 4px;
+                }
+                .react-flow__minimap-node {
+                     fill: #f72585 !important; /* Event stages in minimap */
+                     stroke: none !important;
                 }
                 .react-flow__minimap-mask {
-                    fill: rgba(247, 37, 133, 0.3) !important; 
+                    fill: rgba(247, 37, 133, 0.25) !important; 
+                }
+                .react-flow__controls {
+                    box-shadow: 0 0 10px rgba(247, 37, 133, 0.5);
+                    border-radius: 6px;
+                    overflow: hidden;
                 }
                 .react-flow__controls-button {
-                    background-color: rgba(31, 41, 55, 0.8) !important;
+                    background-color: rgba(30, 41, 59, 0.9) !important;
                     border-bottom: 1px solid #4b5563 !important;
                     fill: #9ca3af !important;
-                     box-shadow: 0 0 5px rgba(247, 37, 133, 0.5);
                 }
-                 .react-flow__controls-button:hover {
+                .react-flow__controls-button:hover {
                     background-color: #374151 !important;
                 }
                 .bg-grid-cyberpunk {
                     background-image: 
-                        linear-gradient(to right, rgba(247, 37, 133, 0.08) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(247, 37, 133, 0.08) 1px, transparent 1px);
+                        radial-gradient(circle at 1px 1px, rgba(247, 37, 133, 0.15) 1px, transparent 0),
+                        radial-gradient(circle at 15px 15px, rgba(247, 37, 133, 0.1) 1px, transparent 0);
                     background-size: 30px 30px; 
                 }
             `}</style>
-            <div className="max-w-6xl mx-auto"> 
-                <div className="prose prose-sm md:prose-base max-w-none prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
+            <div className="max-w-full px-4 mx-auto"> {/* Full width for timeline */}
+                <div className="prose prose-sm md:prose-base max-w-4xl mx-auto prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
                     <ReactMarkdown>{preTimelineContent}</ReactMarkdown>
                 </div>
 
-                <h2 className="text-3xl md:text-4xl font-['Orbitron',_sans-serif] text-cyberpunk-accent my-10 border-b-2 border-cyberpunk-secondary/50 pb-3">
+                <h2 className="text-3xl md:text-4xl font-['Orbitron',_sans-serif] text-cyberpunk-accent my-10 text-center border-b-2 border-cyberpunk-secondary/30 pb-3 max-w-4xl mx-auto">
                     Deconstructed Incident Timeline
                 </h2>
-                <div style={{ height: '2000px', border: '2px solid #f72585', borderRadius: '0.375rem', background: 'rgba(10, 13, 18, 0.95)' }} className="mb-12 shadow-2xl shadow-cyberpunk-accent/50 bg-grid-cyberpunk overflow-hidden">
+                {/* Increased height significantly */}
+                <div style={{ height: '2800px', border: '2px solid #f72585', borderRadius: '0.375rem', background: 'rgba(10, 13, 18, 0.98)' }} className="mb-12 shadow-2xl shadow-cyberpunk-accent/50 bg-grid-cyberpunk overflow-hidden">
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -295,23 +332,21 @@ const IncidentReport = () => {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         fitView
-                        fitViewOptions={{ padding: 0.2, minZoom: 0.2 }} // Adjusted padding and minZoom
+                        fitViewOptions={{ padding: 0.15, minZoom: 0.1 }}
                         minZoom={0.05} 
-                        nodeOrigin={[0.5, 0.5]} // Center child nodes if using parent extent
-                        defaultEdgeOptions={{ type: 'smoothstep', animated: true, style:{ strokeWidth: 2, stroke: '#f72585'}}}
+                        defaultEdgeOptions={{ type: 'smoothstep' }} // defaultEdgeOptions for all edges
                     >
                         <Controls showInteractive={false} /> 
-                        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                        {/* <Background variant="lines" color="rgba(247, 37, 133, 0.1)" gap={30} size={1.5} /> */}
-                        {/* Background is now done by bg-grid-cyberpunk */}
+                        <MiniMap nodeColor={(node) => node.id.startsWith('event-stage-') ? '#f72585' : '#7dd3fc'} nodeStrokeWidth={2} zoomable pannable />
+                        {/* Background is now done by bg-grid-cyberpunk style */}
                     </ReactFlow>
                 </div>
                 
-                <div className="prose prose-sm md:prose-base max-w-none prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
+                <div className="prose prose-sm md:prose-base max-w-4xl mx-auto prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
                     <ReactMarkdown>{technicalAnalysisAndBeyond}</ReactMarkdown>
                 </div>
 
-                <Link to="/" className="mt-12 mb-8 inline-block text-sm text-cyberpunk-secondary hover:text-white hover:bg-cyberpunk-accent px-3 py-2 border border-cyberpunk-secondary hover:border-cyberpunk-accent transition-all duration-150 rounded-md shadow-md hover:shadow-lg hover:shadow-cyberpunk-accent/50">
+                <Link to="/" className="mt-12 mb-8 block w-max mx-auto text-sm text-cyberpunk-secondary hover:text-white hover:bg-cyberpunk-accent px-4 py-2 border border-cyberpunk-secondary hover:border-cyberpunk-accent transition-all duration-150 rounded-md shadow-md hover:shadow-lg hover:shadow-cyberpunk-accent/50">
                     &lt; Return to Mainframe Analysis
                 </Link>
             </div>
