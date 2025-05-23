@@ -409,68 +409,73 @@ const IncidentReport = () => {
             `}</style>
 
             {/* Header */}
-            <div className="cyber-container p-8 m-6">
-                <div className="text-center mb-8">
-                    <div className="flex items-center justify-center mb-6">
-                        <FaShieldAlt className="text-cyberpunk-accent text-4xl mr-4" />
-                        <h1 className="text-5xl font-black text-cyberpunk-accent">
+            <div className="cyber-container p-6 m-6 mb-4">
+                <div className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                        <FaShieldAlt className="text-cyberpunk-accent text-3xl mr-3" />
+                        <h1 className="text-4xl font-black text-cyberpunk-accent">
                             SECURITY INCIDENT ANALYSIS
                         </h1>
-                        <FaShieldAlt className="text-cyberpunk-accent text-4xl ml-4" />
+                        <FaShieldAlt className="text-cyberpunk-accent text-3xl ml-3" />
                     </div>
                     
-                    <div className="flex justify-center gap-4 mb-6">
-                        <div className="bg-red-600 px-4 py-2 rounded border-2 border-red-400">
+                    <div className="flex justify-center gap-4 mb-4">
+                        <div className="bg-red-600 px-3 py-1 rounded border-2 border-red-400">
                             <span className="text-red-100 font-bold text-sm">INCIDENT SEVERITY: CRITICAL</span>
                         </div>
-                        <div className="bg-orange-600 px-4 py-2 rounded border-2 border-orange-400">
+                        <div className="bg-orange-600 px-3 py-1 rounded border-2 border-orange-400">
                             <span className="text-orange-100 font-bold text-sm">PRIORITY: HIGH</span>
                         </div>
                     </div>
                     
-                    <p className="text-cyberpunk-secondary text-lg max-w-4xl mx-auto">
+                    <p className="text-cyberpunk-secondary text-base">
                         Interactive timeline reconstruction of multi-stage cyber attack
                     </p>
                 </div>
+            </div>
 
-                {/* Executive Summary - Compact Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <h3 className="text-2xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+            {/* Main Content Layout - Side by Side */}
+            <div className="mx-6 mb-8 grid grid-cols-12 gap-6">
+                {/* Left Sidebar - Executive Summary & Overview */}
+                <div className="col-span-4 space-y-6">
+                    {/* Executive Summary */}
+                    <div className="cyber-container p-6">
+                        <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
                             Executive Summary
                         </h3>
-                        <div className="prose prose-invert prose-sm max-w-none">
+                        <div className="prose prose-invert prose-sm max-w-none text-sm">
                             <ReactMarkdown>{preTimelineContent.split('## Executive Summary')[1]?.split('## Timeline of Events')[0] || preTimelineContent}</ReactMarkdown>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h3 className="text-2xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+
+                    {/* Incident Overview */}
+                    <div className="cyber-container p-6">
+                        <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
                             Incident Overview
                         </h3>
-                        <div className="space-y-4 text-sm">
+                        <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-cyberpunk-secondary font-semibold">Date Range:</span>
-                                <span className="text-cyberpunk-primary">May 17-19, 2025</span>
+                                <span className="text-cyberpunk-primary text-xs">May 17-19, 2025</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-cyberpunk-secondary font-semibold">Target Host:</span>
-                                <span className="text-cyberpunk-primary">EC2AMAZ-OSH4IUQ</span>
+                                <span className="text-cyberpunk-primary text-xs">EC2AMAZ-OSH4IUQ</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-cyberpunk-secondary font-semibold">Compromised User:</span>
-                                <span className="text-cyberpunk-primary">ATTACKRANGE\jl.picard</span>
+                                <span className="text-cyberpunk-primary text-xs">ATTACKRANGE\jl.picard</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-cyberpunk-secondary font-semibold">Attack Vector:</span>
-                                <span className="text-cyberpunk-primary">ClickFix Social Engineering</span>
+                                <span className="text-cyberpunk-primary text-xs">ClickFix Social Engineering</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-cyberpunk-secondary font-semibold">C2 Infrastructure:</span>
-                                <span className="text-cyberpunk-primary">172.31.7.63:4444</span>
+                                <span className="text-cyberpunk-primary text-xs">172.31.7.63:4444</span>
                             </div>
-                            <div className="border-t border-cyberpunk-secondary/30 pt-4 mt-4">
-                                <h4 className="text-cyberpunk-accent font-semibold mb-2">Key Attack Components:</h4>
+                            <div className="border-t border-cyberpunk-secondary/30 pt-3 mt-3">
+                                <h4 className="text-cyberpunk-accent font-semibold mb-2 text-sm">Key Attack Components:</h4>
                                 <ul className="text-cyberpunk-primary text-xs space-y-1">
                                     <li>• Remote Management Tool (AnyDesk)</li>
                                     <li>• Process Injection Techniques</li>
@@ -481,31 +486,31 @@ const IncidentReport = () => {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Timeline Visualization */}
-            <div className="mx-6 mb-8">
-                <h2 className="timeline-header text-5xl font-black text-cyberpunk-accent text-center mb-8 border-b-2 border-cyberpunk-accent/30 pb-6">
-                    ATTACK TIMELINE RECONSTRUCTION
-                </h2>
-                
-                <div className="cyber-container" style={{ height: '1400px' }}>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        fitView
-                        fitViewOptions={{ padding: 0.1 }}
-                        minZoom={0.1}
-                        maxZoom={2}
-                        defaultZoom={0.7}
-                    >
-                        <Controls />
-                        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                        <Background color="#1e293b" gap={20} size={1} />
-                    </ReactFlow>
+                {/* Right Side - Timeline Visualization */}
+                <div className="col-span-8">
+                    <h2 className="timeline-header text-4xl font-black text-cyberpunk-accent text-center mb-6 border-b-2 border-cyberpunk-accent/30 pb-4">
+                        ATTACK TIMELINE RECONSTRUCTION
+                    </h2>
+                    
+                    <div className="cyber-container" style={{ height: '1200px' }}>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            fitView
+                            fitViewOptions={{ padding: 0.1 }}
+                            minZoom={0.1}
+                            maxZoom={2}
+                            defaultZoom={0.8}
+                        >
+                            <Controls />
+                            <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                            <Background color="#1e293b" gap={20} size={1} />
+                        </ReactFlow>
+                    </div>
                 </div>
             </div>
 
