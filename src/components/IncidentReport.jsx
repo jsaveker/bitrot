@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import ReactFlow, {
@@ -11,358 +11,530 @@ import ReactFlow, {
     MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt } from 'react-icons/fa'; // Example icons
-import dagre from 'dagre';
+import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt, FaSkull, FaShieldAlt, FaCrosshairs } from 'react-icons/fa';
 
-const NODE_WIDTH_EVENT = 350;
-const NODE_HEIGHT_EVENT_BASE = 120; // Base height for event title, time, summary
-const NODE_WIDTH_ENTITY = 200;
-const NODE_HEIGHT_ENTITY = 50; // Approx height for entity nodes with icons
+// Simple timeline approach - create a vertical flow
+const createTimelineFlow = (markdownContent) => {
+    const nodes = [];
+    const edges = [];
+    let nodeId = 1;
 
-const NODE_TYPE_STYLES = {
-    EVENT_STAGE: {
-        background: 'rgba(30, 41, 59, 0.95)',
-        color: '#e2e8f0',
-        border: '2px solid #f72585',
-        borderRadius: '10px',
-        boxShadow: '0 0 12px rgba(247, 37, 133, 0.7), 0 0 4px rgba(247, 37, 133, 0.6) inset',
-        padding: '15px',
-        width: NODE_WIDTH_EVENT,
-        textAlign: 'left',
-        fontSize: '1rem',
-    },
-    ENTITY_BASE: {
-        borderRadius: '6px',
-        padding: '6px 10px',
-        fontSize: '0.7rem',
-        color: 'white',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '5px',
-        height: NODE_HEIGHT_ENTITY,
-        width: NODE_WIDTH_ENTITY,
-        whiteSpace: 'normal',
-        wordBreak: 'break-word',
-        justifyContent: 'flex-start',
-    },
-    USER: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#3182CE', borderColor: '#2B6CB0', label: <><FaUser className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    HOST: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#C53030', borderColor: '#9B2C2C', label: <><FaServer className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    PROCESS: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#2F855A', borderColor: '#276749', label: <><FaBolt className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    FILE: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#805AD5', borderColor: '#6B46C1', label: <><FaFileAlt className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    IP_ADDRESS: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#DD6B20', borderColor: '#C05621', label: <><FaNetworkWired className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    REG_KEY: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#D69E2E', borderColor: '#B7791F', label: <><FaKey className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    COMMAND: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#00A0B0', borderColor: '#007A87', width: 280, label: <><FaTerminal className="mr-1 flex-shrink-0" /> <span className="truncate" title={label}>{label.substring(0, 70)}{label.length > 70 ? '...' : ''}</span></>}),
-    DEFAULT_ENTITY: (label) => ({ ...NODE_TYPE_STYLES.ENTITY_BASE, background: '#4A5568', borderColor: '#2D3748', label: <span className="truncate" title={label}>{label}</span> }),
-};
+    // Parse the markdown for timeline events
+    const timelineSection = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
+    if (!timelineSection) return { nodes: [], edges: [] };
 
-const extractEntities = (textBlock) => {
-    const entities = [];
-    const patterns = {
-        USER: /User `([^`]+)`/g,
-        HOST: /host `([^`]+)`/g,
-        IP_ADDRESS: /(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?\b)/g, // Stricter IP regex
-        FILE: /(\b[A-Za-z]:\\[^\s:`*?"<>|(),]+(?:\.[a-zA-Z0-9]+)?\b)|(\b\/[^\s:`*?"<>|(),]+\b)/g,
-        PROCESS: /(\b[a-zA-Z0-9_-]+\.exe\b)/g,
-        REG_KEY: /(HK[LMU]{1,2}\\[^\s(),;:!"]+)/g,
-        COMMAND: /(powershell\.exe|cmd\.exe)[^\n]*(?:\n(?!\s*[-*>]))*/ig, // Capture multi-line better
-    };
-    const addedValues = new Set(); // Avoid duplicate entities from the same block
+    const timelineText = timelineSection[1];
+    
+    // Extract events with timestamps
+    const eventMatches = timelineText.match(/#### [^#][\s\S]*?(?=####|### |## |$)/g);
+    if (!eventMatches) return { nodes: [], edges: [] };
 
-    for (const type in patterns) {
-        let match;
-        while ((match = patterns[type].exec(textBlock)) !== null) {
-            const value = (type === 'FILE' ? (match[1] || match[2]) : match[1] || match[0]).trim();
-            if (value.length < 4 && type !== 'USER' && type !== 'IP_ADDRESS') continue;
-            if (addedValues.has(value + type)) continue; // Avoid exact same entity string + type
-            
-            entities.push({ type, value });
-            addedValues.add(value + type);
-        }
-    }
-    return entities;
-};
+    let yPosition = 100;
+    let previousNodeId = null;
 
-const getLayoutedElements = (nodes, edges, direction = 'TB') => {
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 100 });
+    eventMatches.forEach((eventBlock, index) => {
+        const lines = eventBlock.trim().split('\n');
+        const titleLine = lines[0].replace(/^####\s*/, '');
+        const content = lines.slice(1).join('\n').trim();
+        
+        // Extract time from title
+        const timeMatch = titleLine.match(/\(([^)]+)\)/);
+        const time = timeMatch ? timeMatch[1] : '';
+        const title = titleLine.replace(/\s*\([^)]*\)/, '');
 
-    nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { 
-            width: node.style?.width || NODE_WIDTH_ENTITY, 
-            height: node.style?.height || NODE_HEIGHT_ENTITY 
-        });
-    });
-
-    edges.forEach((edge) => {
-        dagreGraph.setEdge(edge.source, edge.target);
-    });
-
-    dagre.layout(dagreGraph);
-
-    return nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        return { ...node, position: { x: nodeWithPosition.x - node.style.width / 2, y: nodeWithPosition.y - node.style.height / 2 } };
-    });
-};
-
-const parseTimelineToFlow = (markdownContent) => {
-    const rfNodes = [];
-    const rfEdges = [];
-    let nodeIdCounter = 1;
-    let lastEventStageNodeId = null;
-
-    const timelineSectionMatch = markdownContent.match(/### May 17, 2025([\s\S]*?)### May 18-19, 2025/);
-
-    if (timelineSectionMatch && timelineSectionMatch[1]) {
-        const may17EventsText = timelineSectionMatch[1];
-        const eventBlocks = may17EventsText.trim().split(/\r?\n#### /);
-
-        eventBlocks.forEach((eventBlockText, index) => {
-            if (!eventBlockText.trim()) return;
-            const currentEventBlock = index === 0 && !eventBlockText.startsWith('####') && eventBlocks.length > 1 ? eventBlockText : eventBlockText;
-            const lines = currentEventBlock.trim().split(/\r?\n/);
-            const titleLine = lines[0].replace(/^####\s*/, '');
-            const detailsFull = lines.slice(1).join('\n').trim();
-            const summaryText = detailsFull.substring(0, 200) + (detailsFull.length > 200 ? '...' : '');
-
-            const titleMatch = titleLine.match(/^([^\(]+)\(([^\)]+)\)/);
-            let eventTitle = titleLine;
-            let eventTime = '';
-            if (titleMatch) {
-                eventTitle = titleMatch[1].trim();
-                try {
-                    eventTime = new Date(Date.UTC(2025, 4, 17, ...titleMatch[2].match(/(\d+)/g).map(Number)))
-                                .toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
-                } catch (e) { console.warn("Error parsing time:", titleMatch[2], e); }
-            }
-
-            const eventStageNodeId = `event-stage-${nodeIdCounter++}`;
-            const eventNodeHeight = NODE_HEIGHT_EVENT_BASE + Math.max(0, Math.ceil(summaryText.length / 40) - 2) * 20; // Adjust height for summary
-
-            rfNodes.push({
-                id: eventStageNodeId,
-                data: { label: (<div><strong>{eventTitle}</strong><br/><span className="text-xs text-gray-400 mt-1">{eventTime}</span><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '100px', overflowY: 'auto'}}>{summaryText}</p></div>) },
-                style: { ...NODE_TYPE_STYLES.EVENT_STAGE, height: eventNodeHeight },
-                type: 'default',
-            });
-
-            const extractedEntities = extractEntities(detailsFull);
-            extractedEntities.forEach((entity) => {
-                const entityNodeId = `entity-${nodeIdCounter++}`;
-                const styleFn = NODE_TYPE_STYLES[entity.type] || NODE_TYPE_STYLES.DEFAULT_ENTITY;
-                const nodeStyle = styleFn(entity.value);
-                rfNodes.push({
-                    id: entityNodeId,
-                    data: { label: nodeStyle.label }, 
-                    style: { ...nodeStyle, label: undefined, width: nodeStyle.width || NODE_WIDTH_ENTITY, height: nodeStyle.height || NODE_HEIGHT_ENTITY },
-                    type: 'default',
-                });
-                rfEdges.push({
-                    id: `edge-${eventStageNodeId}-to-${entityNodeId}`,
-                    source: eventStageNodeId,
-                    target: entityNodeId,
-                    type: 'smoothstep',
-                    style: { stroke: '#667292', strokeWidth: 1.5, opacity: 0.9 },
-                    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: '#667292' },
-                });
-            });
-
-            if (lastEventStageNodeId) {
-                rfEdges.push({
-                    id: `edge-event-${lastEventStageNodeId}-to-${eventStageNodeId}`,
-                    source: lastEventStageNodeId,
-                    target: eventStageNodeId,
-                    type: 'smoothstep',
-                    animated: true,
-                    style: { stroke: '#f72585', strokeWidth: 3, filter: 'drop-shadow(0 0 4px #f72585)' },
-                    markerEnd: { type: MarkerType.ArrowClosed, color: '#f72585', width: 20, height: 20 },
-                });
-            }
-            lastEventStageNodeId = eventStageNodeId;
-        });
-    }
-
-    // Simplified May 18-19 section, similar logic to above
-    const may1819SectionMatch = markdownContent.match(/### May 18-19, 2025([\s\S]*?)## Technical Analysis/s);
-    if (may1819SectionMatch && may1819SectionMatch[1] && lastEventStageNodeId) {
-        const detailsFull = may1819SectionMatch[1].trim().replace(/^- /gm, '');
-        const summaryText = detailsFull.substring(0, 200) + (detailsFull.length > 200 ? '...' : '');
-        const eventStageNodeId = `event-stage-${nodeIdCounter++}`;
-        const eventNodeHeight = NODE_HEIGHT_EVENT_BASE + Math.max(0, Math.ceil(summaryText.length / 40) - 2) * 20;
-
-        rfNodes.push({
-            id: eventStageNodeId,
-            data: { label: (<div><strong>Continued Activity (May 18-19)</strong><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '100px', overflowY: 'auto'}}>{summaryText}</p></div>) },
-            style: { ...NODE_TYPE_STYLES.EVENT_STAGE, height: eventNodeHeight },
+        // Create main event node - make it bigger and more prominent
+        const currentNodeId = `event-${nodeId++}`;
+        
+        // Better text handling for long content
+        const displayContent = content.length > 280 ? content.substring(0, 280) + '...' : content;
+        const contentLines = displayContent.split('\n');
+        const summary = contentLines.slice(0, 6).join('\n'); // Limit to 6 lines max
+        
+        nodes.push({
+            id: currentNodeId,
             type: 'default',
+            position: { x: 600, y: yPosition },
+            data: { 
+                label: (
+                    <div style={{ padding: '16px', textAlign: 'left', height: '148px', overflow: 'hidden' }}>
+                        <strong style={{ 
+                            color: '#f72585', 
+                            fontSize: '15px', 
+                            display: 'block', 
+                            marginBottom: '6px',
+                            lineHeight: '1.2',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {title.length > 35 ? title.substring(0, 35) + '...' : title}
+                        </strong>
+                        {time && (
+                            <div style={{ 
+                                color: '#64748b', 
+                                fontSize: '11px', 
+                                marginBottom: '10px', 
+                                fontWeight: '500' 
+                            }}>
+                                {time}
+                            </div>
+                        )}
+                        <div style={{ 
+                            color: '#e2e8f0', 
+                            fontSize: '12px', 
+                            lineHeight: '1.3', 
+                            height: '90px',
+                            overflow: 'hidden',
+                            wordWrap: 'break-word',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 6,
+                            WebkitBoxOrient: 'vertical'
+                        }}>
+                            {summary}
+                        </div>
+                    </div>
+                )
+            },
+            style: {
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
+                border: '3px solid #f72585',
+                borderRadius: '12px',
+                width: 400,
+                height: 180,
+                color: '#e2e8f0',
+                fontSize: '12px',
+                boxShadow: '0 0 30px rgba(247, 37, 133, 0.6), 0 0 60px rgba(247, 37, 133, 0.3)'
+            }
         });
-        const extractedEntities = extractEntities(detailsFull);
-        extractedEntities.forEach((entity) => {
-            const entityNodeId = `entity-${nodeIdCounter++}`;
-            const styleFn = NODE_TYPE_STYLES[entity.type] || NODE_TYPE_STYLES.DEFAULT_ENTITY;
-            const nodeStyle = styleFn(entity.value);
-            rfNodes.push({
-                id: entityNodeId,
-                data: { label: nodeStyle.label }, 
-                style: { ...nodeStyle, label: undefined, width: nodeStyle.width || NODE_WIDTH_ENTITY, height: nodeStyle.height || NODE_HEIGHT_ENTITY },
-                type: 'default',
+
+        // Connect to previous event
+        if (previousNodeId) {
+            edges.push({
+                id: `edge-${previousNodeId}-${currentNodeId}`,
+                source: previousNodeId,
+                target: currentNodeId,
+                type: 'smoothstep',
+                animated: true,
+                style: {
+                    stroke: '#f72585',
+                    strokeWidth: 4,
+                    filter: 'drop-shadow(0 0 6px #f72585)'
+                },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#f72585',
+                    width: 25,
+                    height: 25
+                }
             });
-            rfEdges.push({
-                id: `edge-${eventStageNodeId}-to-${entityNodeId}`,
-                source: eventStageNodeId,
+        }
+
+        // Add entity nodes for this event - make them bigger too
+        const entities = extractSimpleEntities(content);
+        entities.forEach((entity, entityIndex) => {
+            const entityNodeId = `entity-${nodeId++}`;
+            const xOffset = (entityIndex % 4) * 220 - 330; // Spread entities horizontally
+            
+            // Truncate long entity values
+            const displayValue = entity.value.length > 20 ? entity.value.substring(0, 20) + '...' : entity.value;
+            
+            nodes.push({
+                id: entityNodeId,
+                type: 'default',
+                position: { x: 600 + xOffset, y: yPosition + 250 },
+                data: { 
+                    label: (
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            padding: '8px 12px',
+                            height: '34px',
+                            overflow: 'hidden'
+                        }}>
+                            {getEntityIcon(entity.type)}
+                            <span style={{ 
+                                fontSize: '12px', 
+                                fontWeight: '600',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '140px'
+                            }} title={entity.value}>
+                                {displayValue}
+                            </span>
+                        </div>
+                    )
+                },
+                style: {
+                    background: getEntityColor(entity.type),
+                    border: '2px solid rgba(255,255,255,0.4)',
+                    borderRadius: '8px',
+                    width: 200,
+                    height: 50,
+                    color: 'white',
+                    fontSize: '11px',
+                    boxShadow: '0 0 15px rgba(0,0,0,0.4)'
+                }
+            });
+
+            // Connect entity to event
+            edges.push({
+                id: `edge-${currentNodeId}-${entityNodeId}`,
+                source: currentNodeId,
                 target: entityNodeId,
                 type: 'smoothstep',
-                style: { stroke: '#667292', strokeWidth: 1.5, opacity: 0.9 },
-                markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: '#667292' },
+                style: {
+                    stroke: '#64748b',
+                    strokeWidth: 2,
+                    opacity: 0.8
+                },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#64748b',
+                    width: 15,
+                    height: 15
+                }
             });
         });
-        rfEdges.push({
-            id: `edge-event-${lastEventStageNodeId}-to-${eventStageNodeId}`,
-            source: lastEventStageNodeId,
-            target: eventStageNodeId,
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: '#f72585', strokeWidth: 3, filter: 'drop-shadow(0 0 4px #f72585)' },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#f72585', width: 20, height: 20 },
+
+        previousNodeId = currentNodeId;
+        yPosition += 400; // More space between event groups
+    });
+
+    return { nodes, edges };
+};
+
+// Simplified entity extraction
+const extractSimpleEntities = (text) => {
+    const entities = [];
+    
+    // Users
+    const userMatches = text.match(/User `([^`]+)`/g);
+    if (userMatches) {
+        userMatches.forEach(match => {
+            const user = match.match(/`([^`]+)`/)[1];
+            entities.push({ type: 'USER', value: user });
         });
     }
-    return { nodes: rfNodes, edges: rfEdges };
+
+    // IPs
+    const ipMatches = text.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g);
+    if (ipMatches) {
+        ipMatches.slice(0, 2).forEach(ip => {
+            entities.push({ type: 'IP', value: ip });
+        });
+    }
+
+    // Files
+    const fileMatches = text.match(/`([^`]*\.(exe|dll|ps1|bat))`/gi);
+    if (fileMatches) {
+        fileMatches.slice(0, 2).forEach(match => {
+            const file = match.replace(/`/g, '');
+            entities.push({ type: 'FILE', value: file.split('\\').pop() });
+        });
+    }
+
+    return entities.slice(0, 4); // Limit entities per event
+};
+
+const getEntityIcon = (type) => {
+    switch (type) {
+        case 'USER': return <FaUser className="text-blue-200" />;
+        case 'IP': return <FaNetworkWired className="text-orange-200" />;
+        case 'FILE': return <FaFileAlt className="text-purple-200" />;
+        case 'PROCESS': return <FaBolt className="text-green-200" />;
+        default: return <FaTerminal className="text-gray-200" />;
+    }
+};
+
+const getEntityColor = (type) => {
+    switch (type) {
+        case 'USER': return 'linear-gradient(135deg, #3182CE 0%, #2B6CB0 100%)';
+        case 'IP': return 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)';
+        case 'FILE': return 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)';
+        case 'PROCESS': return 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+        default: return 'linear-gradient(135deg, #4B5563 0%, #374151 100%)';
+    }
 };
 
 const IncidentReport = () => {
     const [markdown, setMarkdown] = useState('');
-    const [layoutedNodes, setLayoutedNodes] = useState([]);
-    const [layoutedEdges, setLayoutedEdges] = useState([]);
+    const [nodes, setNodes] = useState([]);
+    const [edges, setEdges] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const onNodesChange = useCallback((changes) => setLayoutedNodes((nds) => applyNodeChanges(changes, nds)), []);
-    const onEdgesChange = useCallback((changes) => setLayoutedEdges((eds) => applyEdgeChanges(changes, eds)), []);
-    const onConnect = useCallback((connection) => setLayoutedEdges((eds) => addEdge({ ...connection, type: 'smoothstep', style:{stroke: '#7dd3fc', strokeWidth:1.5}, markerEnd: {type: MarkerType.ArrowClosed, color: '#7dd3fc'} }, eds)), []);
-
-    useLayoutEffect(() => {
-        if (markdown && !error) {
-            const { nodes: parsedNodes, edges: parsedEdges } = parseTimelineToFlow(markdown);
-            if (parsedNodes.length > 0) {
-                const laidoutNodes = getLayoutedElements(parsedNodes, parsedEdges, 'TB');
-                setLayoutedNodes(laidoutNodes);
-                setLayoutedEdges(parsedEdges); // Edges don't change position from Dagre, only nodes
-            }
-        }
-    }, [markdown, error]);
+    const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+    const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+    const onConnect = useCallback((connection) => setEdges((eds) => addEdge({ 
+        ...connection, 
+        type: 'smoothstep',
+        style: { stroke: '#7dd3fc', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#7dd3fc' }
+    }, eds)), []);
 
     useEffect(() => {
         fetch('/incident/signal_analysis_2025_05_17_to_19.md')
             .then(res => {
-                if (!res.ok) throw new Error(`Failed to load incident report: ${res.status}`);
+                if (!res.ok) throw new Error(`Failed to load: ${res.status}`);
                 return res.text();
             })
-            .then(text => setMarkdown(text))
+            .then(text => {
+                setMarkdown(text);
+                const { nodes: flowNodes, edges: flowEdges } = createTimelineFlow(text);
+                setNodes(flowNodes);
+                setEdges(flowEdges);
+                setIsLoading(false);
+            })
             .catch(err => {
-                console.error("Error fetching incident report:", err);
+                console.error("Error:", err);
                 setError(err.message);
+                setIsLoading(false);
             });
     }, []);
 
     if (error) {
-        return <div className="p-8 bg-gray-900 text-red-500 min-h-screen font-mono">Error: {error}</div>;
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="text-center p-8 border-2 border-red-500 rounded-lg bg-red-900/20">
+                    <FaSkull className="text-red-500 text-6xl mx-auto mb-4 animate-pulse" />
+                    <h2 className="text-red-400 text-2xl font-bold mb-2">SYSTEM ERROR</h2>
+                    <p className="text-red-300">Error: {error}</p>
+                </div>
+            </div>
+        );
     }
 
-    if (!layoutedNodes.length) { 
-        return <div className="p-8 bg-gray-900 text-green-400 min-h-screen font-mono">Deconstructing timeline from signal fragments...</div>;
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="text-center">
+                    <FaCrosshairs className="text-cyberpunk-accent text-8xl mx-auto animate-spin mb-4" style={{ animationDuration: '2s' }} />
+                    <h2 className="text-cyberpunk-accent text-2xl font-bold mb-2">ANALYZING THREAT DATA</h2>
+                    <p className="text-cyberpunk-secondary">Reconstructing attack timeline...</p>
+                </div>
+            </div>
+        );
     }
 
+    // Split content for before and after timeline
     const sections = markdown.split('## Timeline of Events');
     const preTimelineContent = sections[0];
-    let technicalAnalysisAndBeyond = '';
-    if (sections.length > 1 && sections[1].includes('## Technical Analysis')) {
-        technicalAnalysisAndBeyond = `## Technical Analysis${sections[1].split('## Technical Analysis')[1]}`;
-    } else if (sections.length > 1) {
-        technicalAnalysisAndBeyond = sections[1];
-    }
+    const postTimelineContent = sections[1] ? sections[1].split('## Technical Analysis')[1] : '';
 
     return (
-        <div className="bg-black text-cyberpunk-primary min-h-screen p-4 md:p-8 font-['Hack',_monospace]">
+        <div className="bg-black min-h-screen text-cyberpunk-primary">
             <style>{`
-                .react-flow__node {
-                    font-family: 'Hack', monospace;
-                    border-radius: 8px;
-                    /* Default node styles, specific styles in NODE_TYPE_STYLES will override */
+                .cyber-container {
+                    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+                    border: 2px solid #f72585;
+                    border-radius: 12px;
+                    box-shadow: 0 0 30px rgba(247, 37, 133, 0.6);
                 }
-                .react-flow__attribution { display: none; } 
-                .react-flow__minimap {
-                    background-color: rgba(13, 17, 23, 0.9) !important;
-                    border: 1px solid #f72585 !important;
-                    border-radius: 4px;
-                }
-                .react-flow__minimap-node {
-                     fill: #f72585 !important; 
-                     stroke: none !important;
-                }
-                .react-flow__minimap-mask {
-                    fill: rgba(247, 37, 133, 0.25) !important; 
-                }
+                .react-flow__attribution { display: none; }
                 .react-flow__controls {
-                    box-shadow: 0 0 10px rgba(247, 37, 133, 0.5);
-                    border-radius: 6px;
-                    overflow: hidden;
+                    background: rgba(15, 23, 42, 0.9);
+                    border: 2px solid #f72585;
+                    border-radius: 8px;
                 }
                 .react-flow__controls-button {
-                    background-color: rgba(30, 41, 59, 0.9) !important;
-                    border-bottom: 1px solid #4b5563 !important;
+                    background: transparent !important;
+                    border-color: rgba(247, 37, 133, 0.3) !important;
                     fill: #9ca3af !important;
                 }
                 .react-flow__controls-button:hover {
-                    background-color: #374151 !important;
+                    background: rgba(247, 37, 133, 0.2) !important;
+                    fill: #f72585 !important;
                 }
-                .bg-grid-cyberpunk {
-                    background-image: 
-                        radial-gradient(circle at 1px 1px, rgba(247, 37, 133, 0.10) 1px, transparent 0),
-                        radial-gradient(circle at 15px 15px, rgba(247, 37, 133, 0.08) 1px, transparent 0);
-                    background-size: 30px 30px; 
+                .react-flow__minimap {
+                    background: rgba(15, 23, 42, 0.9) !important;
+                    border: 2px solid #f72585 !important;
+                    border-radius: 8px !important;
                 }
-                .truncate {
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    display: inline-block; /* or block */
-                    max-width: 90%; /* Adjust as needed relative to icon */
+                .react-flow__node {
+                    transition: transform 0.2s ease;
+                }
+                .react-flow__node:hover {
+                    transform: scale(1.05);
+                    z-index: 1000;
+                }
+                .prose h2 {
+                    color: #f72585 !important;
+                    font-size: 1.5rem !important;
+                    margin-top: 2rem !important;
+                    margin-bottom: 1rem !important;
+                }
+                .prose h3 {
+                    color: #60a5fa !important;
+                    font-size: 1.25rem !important;
+                    margin-top: 1.5rem !important;
+                    margin-bottom: 0.75rem !important;
+                }
+                .prose p {
+                    color: #e2e8f0 !important;
+                    line-height: 1.6 !important;
+                }
+                .prose ul li {
+                    color: #cbd5e1 !important;
+                }
+                .prose strong {
+                    color: #f72585 !important;
+                }
+                .prose code {
+                    background: rgba(30, 41, 59, 0.8) !important;
+                    color: #22d3ee !important;
+                    padding: 2px 6px !important;
+                    border-radius: 4px !important;
+                    font-size: 0.875em !important;
+                }
+                .prose pre {
+                    background: rgba(15, 23, 42, 0.9) !important;
+                    border: 1px solid rgba(247, 37, 133, 0.3) !important;
+                    border-radius: 8px !important;
+                    overflow-x: auto !important;
+                }
+                body {
+                    overflow-x: hidden;
+                    overflow-y: auto;
+                }
+                .timeline-header {
+                    text-shadow: 0 0 20px rgba(247, 37, 133, 0.8);
+                    animation: glow 2s ease-in-out infinite alternate;
+                }
+                @keyframes glow {
+                    from { text-shadow: 0 0 20px rgba(247, 37, 133, 0.8); }
+                    to { text-shadow: 0 0 30px rgba(247, 37, 133, 1), 0 0 40px rgba(247, 37, 133, 0.6); }
                 }
             `}</style>
-            <div className="max-w-full px-2 mx-auto"> 
-                <div className="prose prose-sm md:prose-base max-w-4xl mx-auto prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
-                    <ReactMarkdown>{preTimelineContent}</ReactMarkdown>
+
+            {/* Header */}
+            <div className="cyber-container p-6 m-6 mb-4">
+                <div className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                        <FaShieldAlt className="text-cyberpunk-accent text-3xl mr-3" />
+                        <h1 className="text-4xl font-black text-cyberpunk-accent">
+                            SECURITY INCIDENT ANALYSIS
+                        </h1>
+                        <FaShieldAlt className="text-cyberpunk-accent text-3xl ml-3" />
+                    </div>
+                    
+                    <div className="flex justify-center gap-4 mb-4">
+                        <div className="bg-red-600 px-3 py-1 rounded border-2 border-red-400">
+                            <span className="text-red-100 font-bold text-sm">INCIDENT SEVERITY: CRITICAL</span>
+                        </div>
+                        <div className="bg-orange-600 px-3 py-1 rounded border-2 border-orange-400">
+                            <span className="text-orange-100 font-bold text-sm">PRIORITY: HIGH</span>
+                        </div>
+                    </div>
+                    
+                    <p className="text-cyberpunk-secondary text-base">
+                        Interactive timeline reconstruction of multi-stage cyber attack
+                    </p>
+                </div>
+            </div>
+
+            {/* Main Content Layout - Side by Side */}
+            <div className="mx-6 mb-8 grid grid-cols-12 gap-6">
+                {/* Left Sidebar - Executive Summary & Overview */}
+                <div className="col-span-4 space-y-6">
+                    {/* Executive Summary */}
+                    <div className="cyber-container p-6">
+                        <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+                            Executive Summary
+                        </h3>
+                        <div className="prose prose-invert prose-sm max-w-none text-sm">
+                            <ReactMarkdown>{preTimelineContent.split('## Executive Summary')[1]?.split('## Timeline of Events')[0] || preTimelineContent}</ReactMarkdown>
+                        </div>
+                    </div>
+
+                    {/* Incident Overview */}
+                    <div className="cyber-container p-6">
+                        <h3 className="text-xl font-bold text-cyberpunk-accent mb-4 border-b border-cyberpunk-accent/30 pb-2">
+                            Incident Overview
+                        </h3>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Date Range:</span>
+                                <span className="text-cyberpunk-primary text-xs">May 17-19, 2025</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Target Host:</span>
+                                <span className="text-cyberpunk-primary text-xs">EC2AMAZ-OSH4IUQ</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Compromised User:</span>
+                                <span className="text-cyberpunk-primary text-xs">ATTACKRANGE\jl.picard</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">Attack Vector:</span>
+                                <span className="text-cyberpunk-primary text-xs">ClickFix Social Engineering</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-cyberpunk-secondary font-semibold">C2 Infrastructure:</span>
+                                <span className="text-cyberpunk-primary text-xs">172.31.7.63:4444</span>
+                            </div>
+                            <div className="border-t border-cyberpunk-secondary/30 pt-3 mt-3">
+                                <h4 className="text-cyberpunk-accent font-semibold mb-2 text-sm">Key Attack Components:</h4>
+                                <ul className="text-cyberpunk-primary text-xs space-y-1">
+                                    <li>• Remote Management Tool (AnyDesk)</li>
+                                    <li>• Process Injection Techniques</li>
+                                    <li>• Credential Theft (Rubeus, BloodHound)</li>
+                                    <li>• Registry Persistence Mechanisms</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <h2 className="text-3xl md:text-4xl font-['Orbitron',_sans-serif] text-cyberpunk-accent my-10 text-center border-b-2 border-cyberpunk-secondary/30 pb-3 max-w-4xl mx-auto">
-                    Deconstructed Incident Timeline
-                </h2>
-                <div style={{ width: '100%', height: '2500px', border: '2px solid #f72585', borderRadius: '0.375rem', background: 'rgba(10, 13, 18, 0.98)' }} className="mb-12 shadow-2xl shadow-cyberpunk-accent/50 bg-grid-cyberpunk overflow-hidden">
-                    <ReactFlow
-                        nodes={layoutedNodes}
-                        edges={layoutedEdges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        fitView
-                        fitViewOptions={{ padding: 0.1, duration: 800 }}
-                        minZoom={0.05} 
-                        defaultEdgeOptions={{ type: 'smoothstep'}} 
-                    >
-                        <Controls showInteractive={false} /> 
-                        <MiniMap nodeColor={(node) => node.id.startsWith('event-stage-') ? '#f72585' : '#7dd3fc'} nodeStrokeWidth={2} zoomable pannable />
-                    </ReactFlow>
+                {/* Right Side - Timeline Visualization */}
+                <div className="col-span-8">
+                    <h2 className="timeline-header text-4xl font-black text-cyberpunk-accent text-center mb-6 border-b-2 border-cyberpunk-accent/30 pb-4">
+                        ATTACK TIMELINE RECONSTRUCTION
+                    </h2>
+                    
+                    <div className="cyber-container" style={{ height: '1200px' }}>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            fitView
+                            fitViewOptions={{ padding: 0.1 }}
+                            minZoom={0.1}
+                            maxZoom={2}
+                            defaultZoom={0.8}
+                        >
+                            <Controls />
+                            <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                            <Background color="#1e293b" gap={20} size={1} />
+                        </ReactFlow>
+                    </div>
                 </div>
-                
-                <div className="prose prose-sm md:prose-base max-w-4xl mx-auto prose-headings:font-['Orbitron',_sans-serif] prose-headings:text-cyberpunk-accent prose-a:text-cyberpunk-secondary hover:prose-a:text-cyberpunk-accent prose-strong:text-cyberpunk-primary prose-code:text-xs prose-code:bg-gray-700 prose-code:p-1 prose-code:rounded prose-pre:bg-gray-800/70 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-md prose-invert">
-                    <ReactMarkdown>{technicalAnalysisAndBeyond}</ReactMarkdown>
-                </div>
+            </div>
 
-                <Link to="/" className="mt-12 mb-8 block w-max mx-auto text-sm text-cyberpunk-secondary hover:text-white hover:bg-cyberpunk-accent px-4 py-2 border border-cyberpunk-secondary hover:border-cyberpunk-accent transition-all duration-150 rounded-md shadow-md hover:shadow-lg hover:shadow-cyberpunk-accent/50">
-                    &lt; Return to Mainframe Analysis
+            {/* Technical Analysis */}
+            {postTimelineContent && (
+                <div className="mx-6 mb-8">
+                    <div className="cyber-container p-6">
+                        <div className="prose prose-invert max-w-none">
+                            <h2 className="text-3xl font-bold text-cyberpunk-accent mb-6">Technical Analysis</h2>
+                            <ReactMarkdown>{postTimelineContent}</ReactMarkdown>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Return Button */}
+            <div className="text-center pb-12">
+                <Link 
+                    to="/" 
+                    className="inline-flex items-center gap-3 text-lg text-cyberpunk-secondary hover:text-white hover:bg-cyberpunk-accent px-8 py-4 border-2 border-cyberpunk-secondary hover:border-cyberpunk-accent transition-all duration-300 rounded-lg font-bold transform hover:scale-105"
+                >
+                    <FaShieldAlt />
+                    RETURN TO MAINFRAME
+                    <FaShieldAlt />
                 </Link>
             </div>
         </div>
