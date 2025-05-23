@@ -13,17 +13,12 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FaFileAlt, FaUser, FaNetworkWired, FaServer, FaKey, FaTerminal, FaBolt, FaSkull, FaShieldAlt, FaCrosshairs, FaArrowLeft, FaRegClock, FaPlusCircle, FaMinusCircle } from 'react-icons/fa';
 
-const EVENT_NODE_WIDTH = 300;
-const EVENT_NODE_BASE_HEIGHT_TITLE_TIME = 40; // Approx height for title + timestamp + top/bottom padding
-const EVENT_NODE_LINE_HEIGHT_SUMMARY = 12; // text-2xs line-height
-const EVENT_NODE_LINE_HEIGHT_DETAILS = 14; // text-xs line-height
-const EVENT_NODE_MAX_SUMMARY_LINES = 3;
-const EVENT_NODE_SUMMARY_CALC_HEIGHT = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (EVENT_NODE_MAX_SUMMARY_LINES * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 20; // +20 for button & padding
-const EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT = 150; // Max scrollable height for details
-const ENTITY_NODE_WIDTH = 180;
-const ENTITY_NODE_HEIGHT = 45;
-const VERTICAL_GAP_EVENT = 150;
-const HORIZONTAL_OFFSET_ENTITY = EVENT_NODE_WIDTH / 2 + 40;
+const EVENT_NODE_WIDTH = 280;
+const EVENT_NODE_HEIGHT = 100;
+const ENTITY_NODE_WIDTH = 160;
+const ENTITY_NODE_HEIGHT = 40;
+const VERTICAL_GAP_EVENT = EVENT_NODE_HEIGHT + 70;
+const HORIZONTAL_OFFSET_ENTITY = EVENT_NODE_WIDTH / 2 + 20;
 const VERTICAL_SPACING_ENTITY = 15;
 
 const NODE_STYLES = {
@@ -33,9 +28,10 @@ const NODE_STYLES = {
         border: '1px solid #e5e7eb',
         borderRadius: '8px',
         width: EVENT_NODE_WIDTH,
-        padding: '15px',
+        height: EVENT_NODE_HEIGHT,
+        padding: '12px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-        fontSize: '13px',
+        fontSize: '12px',
     },
     ENTITY_BASE: {
         borderRadius: '6px',
@@ -52,13 +48,13 @@ const NODE_STYLES = {
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         overflow: 'hidden',
     },
-    USER: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#3b82f6', borderColor: '#1d4ed8', label: <><FaUser className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    HOST: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#ef4444', borderColor: '#b91c1c', label: <><FaServer className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    PROCESS: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#10b981', borderColor: '#047857', label: <><FaBolt className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    FILE: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#8b5cf6', borderColor: '#6d28d9', label: <><FaFileAlt className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    IP_ADDRESS: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#f97316', borderColor: '#c2410c', label: <><FaNetworkWired className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    REG_KEY: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#eab308', borderColor: '#a16207', label: <><FaKey className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label}</span></> }),
-    COMMAND: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#06b6d4', borderColor: '#0e7490', width: 240, label: <><FaTerminal className="mr-1.5 flex-shrink-0" /> <span className="truncate" title={label}>{label.substring(0,50)}{label.length>50?'...':''}</span></>}),
+    USER: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#3b82f6', borderColor: '#1d4ed8', label: <><FaUser className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    HOST: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#ef4444', borderColor: '#b91c1c', label: <><FaServer className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    PROCESS: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#10b981', borderColor: '#047857', label: <><FaBolt className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    FILE: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#8b5cf6', borderColor: '#6d28d9', label: <><FaFileAlt className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    IP_ADDRESS: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#f97316', borderColor: '#c2410c', label: <><FaNetworkWired className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    REG_KEY: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#eab308', borderColor: '#a16207', label: <><FaKey className="mr-1.5" /> <span className="truncate" title={label}>{label}</span></> }),
+    COMMAND: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#06b6d4', borderColor: '#0e7490', width: 220, label: <><FaTerminal className="mr-1.5" /> <span className="truncate" title={label}>{label.substring(0,40)}{label.length>40?'...':''}</span></>}),
     DEFAULT_ENTITY: (label) => ({ ...NODE_STYLES.ENTITY_BASE, background: '#6b7280', borderColor: '#4b5563', label: <span className="truncate" title={label}>{label}</span> }),
 };
 
@@ -92,9 +88,9 @@ const createTimelineFlow = (markdownContent) => {
     const edges = [];
     let nodeIdCounter = 1;
     let yPosition = 80;
-    let lastActionNodeId = null; 
-    const xPositionMain = 350;
-    const xOffsetEntity = EVENT_NODE_WIDTH / 2 + 30 + ENTITY_NODE_WIDTH / 2; // Adjusted for entity width
+    let lastActionNodeId = null;
+    const xPositionMain = 300;
+    const xOffsetEntity = ENTITY_NODE_WIDTH + 20;
 
     const timelineSectionMatch = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
     if (!timelineSectionMatch || !timelineSectionMatch[1]) return { nodes, edges };
@@ -127,66 +123,38 @@ const createTimelineFlow = (markdownContent) => {
                     fullDetails: match[3] ? match[3].trim().replace(/^- /gm, '  ') : '',
                 }));
             } else if (groupTitleForContext) {
-                const groupNodeId = `group-action-${nodeIdCounter++}`;
-                const groupSummary = groupContentAboveActions.substring(0,100) + (groupContentAboveActions.length > 100 ? '...' : '');
-                const summaryLines = Math.min(EVENT_NODE_MAX_SUMMARY_LINES, Math.ceil(groupSummary.length / (EVENT_NODE_WIDTH / 7)));
-                const calculatedInitialHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (summaryLines * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 25;
-
-                nodes.push({
-                    id: groupNodeId,
-                    type: 'eventNode',
-                    position: {x: xPositionMain, y: yPosition},
-                    data: {
-                        title: groupTitleForContext,
-                        timestamp: groupTimestampFallback,
-                        summary: groupSummary,
-                        fullDetails: groupContentAboveActions, // Store full content for expansion
-                        isExpanded: false,
-                        initialHeight: calculatedInitialHeight,
-                    },
-                    style: { ...NODE_STYLES.EVENT, height: calculatedInitialHeight, width: EVENT_NODE_WIDTH -100, background: '#f8fafc', borderColor: '#cbd5e1' },
+                currentGroupActions.push({
+                    title: groupTitleForContext,
+                    timestamp: groupTimestampFallback,
+                    fullDetails: groupContentAboveActions.trim().replace(/^- /gm, '  '),
                 });
-                
-                if (lastActionNodeId) {
-                    edges.push({
-                        id: `edge-${lastActionNodeId}-to-${groupNodeId}`,
-                        source: lastActionNodeId,
-                        target: groupNodeId,
-                        type: 'smoothstep',
-                        style: { stroke: '#b0b8c5', strokeWidth: 1.2, opacity: 0.9 },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b8c5', width:10, height:10 },
-                    });
-                }
-                lastActionNodeId = groupNodeId;
-                yPosition += calculatedInitialHeight + (VERTICAL_GAP_EVENT / 1.8);
             }
 
             currentGroupActions.forEach(action => {
-                const summary = action.fullDetails.split(/\r?\n\r?\n/)[0].substring(0, 100) + (action.fullDetails.length > 100 ? '...' : '');
+                const summary = action.fullDetails.split(/\r?\n\r?\n/)[0].substring(0, 70) + (action.fullDetails.length > 70 ? '...' : '');
                 const actionNodeId = `action-${nodeIdCounter++}`;
-                
-                // Calculate initial height based on summary content fitting EVENT_NODE_MAX_SUMMARY_LINES
-                const summaryLines = Math.min(EVENT_NODE_MAX_SUMMARY_LINES, Math.ceil(summary.length / (EVENT_NODE_WIDTH / 7))); // Approx chars per line
-                const calculatedInitialHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + (summaryLines * EVENT_NODE_LINE_HEIGHT_SUMMARY) + 25; // +25 for button/padding
 
                 nodes.push({
                     id: actionNodeId,
-                    type: 'eventNode', // Use custom node type
+                    type: 'default',
                     position: { x: xPositionMain, y: yPosition },
                     data: { 
-                        title: action.title,
-                        timestamp: action.timestamp,
-                        summary: summary, // Store summary for initial display
+                        label: (
+                            <div className="p-2 text-left">
+                                <div className="flex items-center mb-1">
+                                    <FaRegClock className="text-slate-500 mr-1.5 flex-shrink-0" size="0.7em" />
+                                    <span className="text-2xs text-slate-500 font-medium">{action.timestamp}</span>
+                                </div>
+                                <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight" title={action.title}>{action.title.length > 40 ? action.title.substring(0,37)+'...':action.title}</h3>
+                                <p className="text-2xs text-slate-600 leading-snug" style={{maxHeight: '30px', overflow:'hidden'}}>{summary}</p>
+                            </div>
+                        ),
+                        rawTitle: action.title,
+                        rawTimestamp: action.timestamp,
                         fullDetails: action.fullDetails,
-                        isExpanded: false, // Start collapsed
-                        initialHeight: calculatedInitialHeight, // Store calculated initial height
-                        // onToggleExpand will be added in the main component
+                        nodeType: 'action'
                     },
-                    style: { 
-                        ...NODE_STYLES.EVENT, 
-                        height: calculatedInitialHeight, // Set initial height
-                        width: EVENT_NODE_WIDTH 
-                    },
+                    style: { ...NODE_STYLES.EVENT },
                 });
 
                 if (lastActionNodeId) {
@@ -209,16 +177,21 @@ const createTimelineFlow = (markdownContent) => {
                     const nodeStyle = styleFn(entity.value);
                     
                     const entityX = xPositionMain + ((entityIdx % 2 === 0) ? -xOffsetEntity : xOffsetEntity);
-                    let entityY = yPosition + (calculatedInitialHeight / 2) - (ENTITY_NODE_HEIGHT / 2);
+                    let entityY = yPosition + (EVENT_NODE_HEIGHT / 2) - (ENTITY_NODE_HEIGHT / 2);
                     if(extractedEntities.length > 1){
                         const totalEntitiesHeight = extractedEntities.length * ENTITY_NODE_HEIGHT + (extractedEntities.length - 1) * VERTICAL_SPACING_ENTITY;
-                        const startY = yPosition + (calculatedInitialHeight / 2) - (totalEntitiesHeight / 2);
+                        const startY = yPosition + (EVENT_NODE_HEIGHT / 2) - (totalEntitiesHeight / 2);
                         entityY = startY + entityIdx * (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY);
                     }
                     
                     nodes.push({
                         id: entityNodeId,
-                        data: { label: nodeStyle.label }, 
+                        data: { 
+                            label: nodeStyle.label, 
+                            rawValue: entity.value,
+                            rawType: entity.type,
+                            nodeType: 'entity'
+                        }, 
                         position: { x: entityX, y: entityY },
                         style: { ...nodeStyle, label: undefined },
                         type: 'default',
@@ -232,46 +205,37 @@ const createTimelineFlow = (markdownContent) => {
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b8c5', width:10, height:10 },
                     });
                 });
-                yPosition += calculatedInitialHeight + (VERTICAL_GAP_EVENT / 1.8); // Adjust Y based on actual initial height
+                yPosition += VERTICAL_GAP_EVENT;
             });
         });
     });
     return { nodes, edges };
 };
 
-const EventNode = ({ data, id }) => { // Changed id prop to data.id for consistency, but ReactFlow passes id directly
-    const { title, timestamp, summary, fullDetails, isExpanded, onToggleExpand } = data;
+const DetailSidebar = ({ selectedNode, onClose }) => {
+    if (!selectedNode) return null;
+
     return (
-        <div className="p-2.5 text-left" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="flex items-center mb-1.5">
-                <FaRegClock className="text-slate-400 mr-1.5 flex-shrink-0" size="0.75em" />
-                <span className="text-2xs text-slate-500 font-medium tracking-wide">{timestamp}</span>
+        <div className="col-span-12 lg:col-span-3 bg-white shadow rounded-lg p-5 space-y-4 h-screen sticky top-24 overflow-y-auto">
+            <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-gray-800">
+                    {selectedNode.nodeType === 'action' ? selectedNode.rawTitle : selectedNode.rawType }
+                </h2>
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-700">&times;</button>
             </div>
-            <h3 
-                className="text-xs font-semibold text-slate-700 mb-1.5 leading-tight cursor-pointer hover:text-blue-600"
-                title={title}
-                onClick={() => onToggleExpand(id)} // Make title clickable to expand/collapse
-            >
-                {title.length > 45 ? title.substring(0,42)+'...':title}
-            </h3>
-            <div 
-                className="text-2xs text-slate-600 leading-snug overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-1"
-                style={{ flexGrow: 1, maxHeight: isExpanded ? EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT : EVENT_NODE_SUMMARY_CALC_HEIGHT - 10 /* Adjust for button */ }}
-            >
-                {isExpanded ? fullDetails : summary}
+            {selectedNode.nodeType === 'action' && selectedNode.rawTimestamp && (
+                <div className="text-xs text-gray-500 flex items-center">
+                    <FaRegClock className="mr-1.5" /> {selectedNode.rawTimestamp}
+                </div>
+            )}
+            <div className="prose prose-sm max-w-none">
+                <ReactMarkdown>
+                    {selectedNode.nodeType === 'action' ? selectedNode.fullDetails : selectedNode.rawValue}
+                </ReactMarkdown>
             </div>
-            <button 
-                onClick={() => onToggleExpand(id)} 
-                className="text-2xs text-blue-500 hover:text-blue-700 mt-1.5 flex items-center focus:outline-none self-start"
-            >
-                {isExpanded ? <FaMinusCircle className="mr-1" /> : <FaPlusCircle className="mr-1" />} 
-                {isExpanded ? 'Collapse' : 'Expand Details'}
-            </button>
         </div>
     );
 };
-
-const nodeTypes = { eventNode: EventNode };
 
 const IncidentReport = () => {
     const [markdown, setMarkdown] = useState('');
@@ -279,6 +243,7 @@ const IncidentReport = () => {
     const [edges, setEdges] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedNodeDetails, setSelectedNodeDetails] = useState(null);
 
     const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
     const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
@@ -288,41 +253,12 @@ const IncidentReport = () => {
         markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af' }
     }, eds)), []);
 
-    const handleToggleExpand = useCallback((nodeId) => {
-        setNodes((prevNodes) => 
-            prevNodes.map((node) => {
-                if (node.id === nodeId && (node.type === 'eventNode' || node.id.startsWith('action-') || node.id.startsWith('group-action-'))) {
-                    const isExpanded = !node.data.isExpanded;
-                    let newHeight;
-                    if (isExpanded) {
-                        // Estimate height for full details dynamically
-                        const tempDiv = document.createElement('div');
-                        // Use a style that mimics the node's text content area for better estimation
-                        tempDiv.style.width = `${(NODE_STYLES.EVENT.width || EVENT_NODE_WIDTH) - 100 - 30}px`; // width - padding
-                        tempDiv.style.fontSize = '0.6875rem'; // text-2xs
-                        tempDiv.style.lineHeight = '1.25'; // leading-snug
-                        tempDiv.style.fontFamily = 'Inter, sans-serif';
-                        tempDiv.style.whiteSpace = 'pre-wrap';
-                        tempDiv.style.wordBreak = 'break-word';
-                        tempDiv.innerText = node.data.fullDetails;
-                        document.body.appendChild(tempDiv); // Needs to be in DOM for getComputedStyle/scrollHeight
-                        const contentHeight = tempDiv.scrollHeight;
-                        document.body.removeChild(tempDiv);
-                        newHeight = EVENT_NODE_BASE_HEIGHT_TITLE_TIME + Math.min(contentHeight, EVENT_NODE_DETAILS_MAX_CONTENT_HEIGHT) + 25; // +25 for button/padding
-                    } else {
-                        newHeight = node.data.initialHeight;
-                    }
-                    return { 
-                        ...node, 
-                        data: { ...node.data, isExpanded },
-                        style: { ...node.style, height: newHeight }
-                    };
-                }
-                return node;
-            })
-        );
-        // Trigger a re-layout or ensure subsequent nodes are pushed IF NECESSARY
-        // For now, we rely on initial generous spacing.
+    const onNodeClick = useCallback((event, node) => {
+        if (node.data) {
+            setSelectedNodeDetails(node.data);
+        } else {
+            setSelectedNodeDetails(null);
+        }
     }, []);
 
     useEffect(() => {
@@ -334,14 +270,7 @@ const IncidentReport = () => {
             .then(text => {
                 setMarkdown(text);
                 const { nodes: flowNodes, edges: flowEdges } = createTimelineFlow(text);
-                const nodesWithHandler = flowNodes.map(n => ({
-                    ...n,
-                    type: n.id.startsWith('action-') || n.id.startsWith('group-action-') ? 'eventNode' : 'default',
-                    data: (n.id.startsWith('action-') || n.id.startsWith('group-action-')) 
-                          ? { ...n.data, onToggleExpand: handleToggleExpand } 
-                          : n.data
-                }));
-                setNodes(nodesWithHandler);
+                setNodes(flowNodes);
                 setEdges(flowEdges);
                 setIsLoading(false);
             })
@@ -350,7 +279,7 @@ const IncidentReport = () => {
                 setError(err.message);
                 setIsLoading(false);
             });
-    }, [handleToggleExpand]);
+    }, []);
 
     if (error) {
         return (
@@ -450,7 +379,7 @@ const IncidentReport = () => {
                 </div>
             </header>
 
-            <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-12 gap-6">
                     <div className="col-span-12 lg:col-span-3 space-y-6">
                         <div className="bg-white shadow rounded-lg p-5">
@@ -481,24 +410,24 @@ const IncidentReport = () => {
                         </div>
                     </div>
 
-                    <div className="col-span-12 lg:col-span-9">
+                    <div className={`col-span-12 ${selectedNodeDetails ? 'lg:col-span-6' : 'lg:col-span-9'}`}>
                         <div className="bg-white shadow rounded-lg">
                              <div className="p-5 border-b border-gray-200">
                                 <h2 className="text-lg font-semibold text-gray-800 text-center">Attack Timeline Reconstruction</h2>
                             </div>
-                            <div style={{ height: '1500px' }}> 
+                            <div style={{ height: '1000px' }}> 
                                 <ReactFlow
                                     nodes={nodes}
                                     edges={edges}
                                     onNodesChange={onNodesChange}
                                     onEdgesChange={onEdgesChange}
                                     onConnect={onConnect}
+                                    onNodeClick={onNodeClick}
                                     fitView
-                                    fitViewOptions={{ padding: 0.2, duration: 0 }}
+                                    fitViewOptions={{ padding: 0.1, duration: 0 }}
                                     minZoom={0.1}
                                     maxZoom={1.8}
                                     defaultZoom={0.7}
-                                    nodeTypes={nodeTypes}
                                 >
                                     <Controls position="bottom-right" />
                                     <MiniMap position="bottom-left" nodeStrokeWidth={2} zoomable pannable nodeColor="#e5e7eb" maskColor="rgba(0,0,0,0.05)"/>
@@ -507,6 +436,13 @@ const IncidentReport = () => {
                             </div>
                         </div>
                     </div>
+
+                    {selectedNodeDetails && (
+                        <DetailSidebar 
+                            selectedNode={selectedNodeDetails} 
+                            onClose={() => setSelectedNodeDetails(null)} 
+                        />
+                    )}
                 </div>
 
                 {(timelineEventsMarkdown || technicalAnalysisText) && (
