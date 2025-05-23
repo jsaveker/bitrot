@@ -146,7 +146,13 @@ const extractEntities = (textBlock) => {
 const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 100 });
+    dagreGraph.setGraph({ 
+        rankdir: direction, 
+        nodesep: 120, 
+        ranksep: 150,
+        marginx: 20,
+        marginy: 20
+    });
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { 
@@ -163,7 +169,19 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 
     return nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
-        return { ...node, position: { x: nodeWithPosition.x - node.style.width / 2, y: nodeWithPosition.y - node.style.height / 2 } };
+        return { 
+            ...node, 
+            position: { 
+                x: nodeWithPosition.x - (node.style?.width || NODE_WIDTH_ENTITY) / 2, 
+                y: nodeWithPosition.y - (node.style?.height || NODE_HEIGHT_ENTITY) / 2 
+            },
+            // Ensure proper dimensions are set
+            style: {
+                ...node.style,
+                width: node.style?.width || NODE_WIDTH_ENTITY,
+                height: node.style?.height || NODE_HEIGHT_ENTITY
+            }
+        };
     });
 };
 
@@ -204,7 +222,11 @@ const parseTimelineToFlow = (markdownContent) => {
             rfNodes.push({
                 id: eventStageNodeId,
                 data: { label: (<div><strong>{eventTitle}</strong><br/><span className="text-xs text-gray-400 mt-1">{eventTime}</span><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '100px', overflowY: 'auto'}}>{summaryText}</p></div>) },
-                style: { ...NODE_TYPE_STYLES.EVENT_STAGE, height: eventNodeHeight },
+                style: { 
+                    ...NODE_TYPE_STYLES.EVENT_STAGE, 
+                    height: eventNodeHeight,
+                    width: NODE_WIDTH_EVENT
+                },
                 type: 'default',
             });
 
@@ -255,7 +277,11 @@ const parseTimelineToFlow = (markdownContent) => {
         rfNodes.push({
             id: eventStageNodeId,
             data: { label: (<div><strong>Continued Activity (May 18-19)</strong><hr className="my-2 border-cyberpunk-accent/40"/><p className="text-sm font-normal whitespace-pre-wrap" style={{maxHeight: '100px', overflowY: 'auto'}}>{summaryText}</p></div>) },
-            style: { ...NODE_TYPE_STYLES.EVENT_STAGE, height: eventNodeHeight },
+            style: { 
+                ...NODE_TYPE_STYLES.EVENT_STAGE, 
+                height: eventNodeHeight,
+                width: NODE_WIDTH_EVENT
+            },
             type: 'default',
         });
         const extractedEntities = extractEntities(detailsFull);
@@ -433,11 +459,9 @@ const IncidentReport = () => {
                 }
                 
                 .glitch-text {
-                    animation: glitch 0.3s infinite;
                     text-shadow: 
                         0 0 10px #f72585,
-                        0 0 20px #f72585,
-                        0 0 30px #f72585;
+                        0 0 20px #f72585;
                 }
                 
                 .typewriter {
@@ -491,7 +515,6 @@ const IncidentReport = () => {
                 .react-flow__node {
                     font-family: 'Hack', monospace;
                     transition: all 0.3s ease;
-                    animation: breath 4s ease-in-out infinite;
                 }
                 
                 .react-flow__node:hover {
@@ -572,7 +595,6 @@ const IncidentReport = () => {
                     background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
                     border: 2px solid #f87171;
                     box-shadow: 0 0 20px rgba(248, 113, 113, 0.8);
-                    animation: breath 2s ease-in-out infinite;
                 }
                 
                 .classification-badge {
@@ -608,7 +630,7 @@ const IncidentReport = () => {
                 <div className="max-w-6xl mx-auto text-center">
                     <div className="flex items-center justify-center mb-6">
                         <FaShieldAlt className="text-cyberpunk-accent text-4xl mr-4 animate-pulse" />
-                        <h1 className="text-4xl md:text-6xl font-['Orbitron'] font-black text-cyberpunk-accent glitch-text">
+                        <h1 className="text-4xl md:text-6xl font-['Orbitron'] font-black text-cyberpunk-accent">
                             SECURITY INCIDENT ANALYSIS
                         </h1>
                         <FaShieldAlt className="text-cyberpunk-accent text-4xl ml-4 animate-pulse" />
@@ -624,8 +646,7 @@ const IncidentReport = () => {
                     </div>
                     
                     <p className="text-cyberpunk-secondary text-lg md:text-xl font-mono max-w-4xl mx-auto leading-relaxed">
-                        Executive Summary: A comprehensive analysis of security signals from May 17-19, 2025 reveals a sophisticated 
-                        multi-stage attack on host <span className="text-cyberpunk-accent font-bold">EC2AMZ-QSHKIUQ.attackrange.prptl.org</span>
+                        Advanced threat analysis and incident reconstruction from classified security logs
                     </p>
                 </div>
             </div>
@@ -642,11 +663,11 @@ const IncidentReport = () => {
 
                 {/* Enhanced Timeline Section */}
                 <div className="max-w-full mx-auto mb-12">
-                    <h2 className="text-3xl md:text-5xl font-['Orbitron'] font-black text-cyberpunk-accent my-12 text-center border-b-2 border-cyberpunk-secondary/30 pb-6 glitch-text">
+                    <h2 className="text-3xl md:text-5xl font-['Orbitron'] font-black text-cyberpunk-accent my-12 text-center border-b-2 border-cyberpunk-secondary/30 pb-6">
                         DECONSTRUCTED INCIDENT TIMELINE
                     </h2>
                     
-                    <div className="cyber-flow-container mb-12" style={{ height: '2800px' }}>
+                    <div className="cyber-flow-container mb-12" style={{ height: '1200px' }}>
                         <ReactFlow
                             nodes={layoutedNodes}
                             edges={layoutedEdges}
@@ -654,8 +675,10 @@ const IncidentReport = () => {
                             onEdgesChange={onEdgesChange}
                             onConnect={onConnect}
                             fitView
-                            fitViewOptions={{ padding: 0.15, duration: 1200 }}
-                            minZoom={0.05} 
+                            fitViewOptions={{ padding: 0.2, duration: 1200 }}
+                            minZoom={0.1} 
+                            maxZoom={2}
+                            defaultZoom={0.8}
                             defaultEdgeOptions={{ 
                                 type: 'smoothstep',
                                 style: { 
