@@ -88,46 +88,81 @@ const createTimelineFlow = (markdownContent) => {
     const edges = [];
     let nodeIdCounter = 1;
     let yPosition = 80;
-    let lastActionNodeId = null; // Tracks the very last action node to chain event groups
-    const xPositionMain = 350; // Centerline for main action nodes
-    const xOffsetEntity = 250; // How far entities are from their action node
+    let lastActionNodeId = null; 
+    const xPositionMain = 350; 
+    const xOffsetEntity = 250; 
 
     const timelineSectionMatch = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
     if (!timelineSectionMatch || !timelineSectionMatch[1]) return { nodes, edges };
 
     const timelineText = timelineSectionMatch[1];
-    // Split by H3 (### Date) first, then by H4 (#### Event Group)
+    // Correctly split into H3 Date blocks first
     const dateBlocks = timelineText.trim().split(/\r?\n### /).filter(block => block.trim() !== '');
 
-    dateBlocks.forEach(dateBlockText => {
-        const dateBlockLines = dateBlockText.trim().split(/\r?\n/);
-        const dateTitle = dateBlockLines[0].trim(); // e.g., "May 17, 2025"
-        // Create a non-visual grouping or just use for context
-        // For now, we won't create a visible node for the date itself, but will parse its events.
+    dateBlocks.forEach(dateBlockTextWithTitle => {
+        const dateBlockLines = dateBlockTextWithTitle.trim().split(/\r?\n/);
+        // const dateTitle = dateBlockLines[0].trim(); // We don't display date title as a node for now
+        const eventGroupText = dateBlockLines.slice(1).join('\n'); // Content under the H3 date title
 
-        const eventGroupText = dateBlockLines.slice(1).join('\n');
+        // Now split this content by H4 Event Group titles
         const eventGroups = eventGroupText.trim().split(/\r?\n#### /).filter(group => group.trim() !== '');
 
-        eventGroups.forEach(groupText => {
-            const groupLines = groupText.trim().split(/\r?\n/);
-            const groupTitleLine = groupLines[0];
+        eventGroups.forEach(groupTextWithTitle => {
+            const groupLines = groupTextWithTitle.trim().split(/\r?\n/);
+            // If the first line is empty (due to splitting artifacts), remove it.
+            const groupTitleLine = groupLines[0].startsWith('####') ? groupLines[0].replace(/^####\s*/, '') : groupLines[0];
+            const groupContent = groupLines.slice(1).join('\n');
+
             const groupTimestampMatch = groupTitleLine.match(/\(([^\)]+)\)/);
             const groupTimestamp = groupTimestampMatch ? groupTimestampMatch[1] : '';
             const groupTitle = groupTitleLine.replace(/\s*\([^\)]*\)/, '').trim();
-            
-            // Create a "parent" node for this event group if we want to visually group sub-actions
-            // For now, let's make each sub-action a primary node in the main timeline
 
-            const actionsText = groupLines.slice(1).join('\n');
             // Regex to find lines starting with "- **Action Title** [(timestamp)]"
-            const actionMatches = [...actionsText.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n- \*\*|$)/g)];
+            // Ensure it captures details correctly, even if no further "- **" lines follow.
+            const actionMatches = [...groupContent.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n(?:- \*\*|####|$))/g)];
+            
+            if (actionMatches.length === 0 && groupTitle) { // Handle cases where an H4 group might not have sub-actions
+                 // Create a node for the H4 group itself if no sub-actions are found
+                const actionNodeId = `action-${nodeIdCounter++}`;
+                const actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(groupContent.substring(0, 150).length / 45) -1) * 18;
+                nodes.push({
+                    id: actionNodeId,
+                    type: 'default',
+                    position: { x: xPositionMain, y: yPosition },
+                    data: { 
+                        label: (
+                            <div className="p-2 text-left">
+                                <div className="flex items-center mb-1">
+                                    <FaRegClock className="text-gray-400 mr-1.5 flex-shrink-0" size="0.8em" />
+                                    <span className="text-xs text-gray-500 font-medium">{groupTimestamp}</span>
+                                </div>
+                                <h3 className="text-xs font-semibold text-gray-800 mb-1 leading-tight" title={groupTitle}>{groupTitle.length > 45 ? groupTitle.substring(0,42)+'...':groupTitle}</h3>
+                                <p className="text-2xs text-gray-600 leading-snug overflow-y-auto" style={{maxHeight: '50px'}}>{groupContent.substring(0, 150)}</p>
+                            </div>
+                        )
+                    },
+                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 80 },
+                });
+                 if (lastActionNodeId) {
+                    edges.push({
+                        id: `edge-${lastActionNodeId}-to-${actionNodeId}`,
+                        source: lastActionNodeId,
+                        target: actionNodeId,
+                        type: 'smoothstep',
+                        animated: true,
+                        style: { stroke: '#e11d48', strokeWidth: 2.2, filter: 'drop-shadow(0 0 2px #e11d48)' },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 16, height: 16 },
+                    });
+                }
+                lastActionNodeId = actionNodeId;
+                yPosition += actionNodeHeight + VERTICAL_GAP_EVENT / 1.5;
+            }
 
             actionMatches.forEach(actionMatch => {
                 const actionTitle = actionMatch[1].trim();
-                const actionTimestamp = actionMatch[2] ? actionMatch[2].trim() : groupTimestamp; // Fallback to group timestamp
-                const actionDetails = actionMatch[3] ? actionMatch[3].trim().replace(/^- /gm, '  ') : ''; // Indent further details
+                const actionTimestamp = actionMatch[2] ? actionMatch[2].trim() : groupTimestamp;
+                const actionDetails = actionMatch[3] ? actionMatch[3].trim().replace(/^- /gm, '  ') : '';
                 const summary = actionDetails.substring(0, 150) + (actionDetails.length > 150 ? '...' : '');
-
                 const actionNodeId = `action-${nodeIdCounter++}`;
                 const actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(summary.length / 45) -1) * 18;
 
@@ -147,10 +182,9 @@ const createTimelineFlow = (markdownContent) => {
                             </div>
                         )
                     },
-                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 80 }, // Slimmer action nodes
+                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 80 },
                 });
 
-                // Link to previous action node (if any)
                 if (lastActionNodeId) {
                     edges.push({
                         id: `edge-${lastActionNodeId}-to-${actionNodeId}`,
@@ -158,21 +192,24 @@ const createTimelineFlow = (markdownContent) => {
                         target: actionNodeId,
                         type: 'smoothstep',
                         animated: true,
-                        style: { stroke: '#e11d48', strokeWidth: 2.2, filter: 'drop-shadow(0 0 2px #e11d48)' }, // Brighter pink
+                        style: { stroke: '#e11d48', strokeWidth: 2.2, filter: 'drop-shadow(0 0 2px #e11d48)' },
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 16, height: 16 },
                     });
                 }
                 lastActionNodeId = actionNodeId;
 
                 // Entities for this action node
-                const extractedEntities = extractEntitiesFromEventText(actionDetails || detailsFull); // Use actionDetails first
+                const extractedEntities = extractEntitiesFromEventText(actionDetails || detailsFull || groupContent);
                 extractedEntities.forEach((entity, entityIdx) => {
                     const entityNodeId = `entity-${nodeIdCounter++}`;
                     const styleFn = NODE_STYLES[entity.type] || NODE_STYLES.DEFAULT_ENTITY;
                     const nodeStyle = styleFn(entity.value);
                     
                     const entityX = xPositionMain + (entityIdx % 2 === 0 ? -xOffsetEntity : xOffsetEntity);
-                    const entityY = yPosition + (actionNodeHeight / 2) - (ENTITY_NODE_HEIGHT / 2) + (entityIdx > 1 ? (entityIdx-1)* (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY)/2 * (entityIdx % 2 === 0 ? -1 : 1) : 0) ;
+                    // Adjust Y to be relative to the current action node, not global yPosition directly for entities
+                    const entityY = yPosition + (actionNodeHeight / 2) - (ENTITY_NODE_HEIGHT / 2) + 
+                                  ((Math.floor(entityIdx / 2)) * (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY) * (entityIdx % 2 === 0 ? -1 : 1) ) +
+                                  (extractedEntities.length % 2 !== 0 && entityIdx === extractedEntities.length -1 ? 0 : (entityIdx % 2 === 0 ? -VERTICAL_SPACING_ENTITY/2 : VERTICAL_SPACING_ENTITY/2));
                     
                     nodes.push({
                         id: entityNodeId,
@@ -186,11 +223,11 @@ const createTimelineFlow = (markdownContent) => {
                         source: actionNodeId,
                         target: entityNodeId,
                         type: 'smoothstep',
-                        style: { stroke: '#a1a1aa', strokeWidth: 1 }, // Lighter gray for entity links
+                        style: { stroke: '#a1a1aa', strokeWidth: 1 }, 
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#a1a1aa', width:10, height:10 },
                     });
                 });
-                yPosition += actionNodeHeight + VERTICAL_GAP_EVENT / 1.5; // Adjust Y based on action node height
+                yPosition += actionNodeHeight + VERTICAL_GAP_EVENT / 1.5;
             });
         });
     });
