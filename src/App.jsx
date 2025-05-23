@@ -93,7 +93,7 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen relative animate-background-pan p-4 flex items-center justify-center text-cyberpunk-primary">
+    <div className="min-h-screen relative animate-background-pan p-4 flex items-center justify-center text-cyberpunk-primary overflow-hidden">
       <div className="scanline"></div>
 
       {/* Main terminal window */}
