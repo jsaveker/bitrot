@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Lab from './components/Lab';
 import AttackFlows from './components/AttackFlows';
+import IncidentReport from './components/IncidentReport';
 
 // Helper function for random character
 const getRandomChar = () => {
@@ -156,6 +157,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/lab" element={<Lab />} />
       <Route path="/attack/*" element={<AttackFlows />} />
+      <Route path="/incident" element={<IncidentReport />} />
     </Routes>
   );
 }
