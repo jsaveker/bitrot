@@ -5,6 +5,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import Lab from './components/Lab';
 import AttackFlows from './components/AttackFlows';
 import IncidentReport from './components/IncidentReport';
+import ModernIncidentView from './components/ModernIncidentView';
 
 // Helper function for random character
 const getRandomChar = () => {
@@ -142,6 +143,17 @@ function LandingPage() {
             </Link>
              ?
           </p>
+
+          <p className="text-center text-sm text-cyberpunk-secondary mt-4 animate-flicker">
+            &gt; Or investigate a live{' '}
+            <Link 
+              to="/inc"
+              className="text-red-400 hover:text-white hover:bg-red-600 px-1 underline transition-all duration-150 font-bold"
+            >
+               [SECURITY INCIDENT]
+            </Link>
+             - Critical threat detected.
+          </p>
         </div>
       </motion.div>
 
@@ -158,6 +170,7 @@ function App() {
       <Route path="/lab" element={<Lab />} />
       <Route path="/attack/*" element={<AttackFlows />} />
       <Route path="/incident" element={<IncidentReport />} />
+      <Route path="/inc" element={<ModernIncidentView />} />
     </Routes>
   );
 }
