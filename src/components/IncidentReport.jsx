@@ -88,147 +88,143 @@ const createTimelineFlow = (markdownContent) => {
     const edges = [];
     let nodeIdCounter = 1;
     let yPosition = 80;
-    let lastActionNodeId = null; 
-    const xPositionMain = 350; 
-    const xOffsetEntity = 250; 
+    let lastActionNodeId = null; // This will track the very last action node processed
+    const xPositionMain = 350;
+    const xOffsetEntity = 280; // Increased offset for entities
 
     const timelineSectionMatch = markdownContent.match(/## Timeline of Events([\s\S]*?)## Technical Analysis/);
     if (!timelineSectionMatch || !timelineSectionMatch[1]) return { nodes, edges };
 
     const timelineText = timelineSectionMatch[1];
-    // Correctly split into H3 Date blocks first
     const dateBlocks = timelineText.trim().split(/\r?\n### /).filter(block => block.trim() !== '');
 
     dateBlocks.forEach(dateBlockTextWithTitle => {
         const dateBlockLines = dateBlockTextWithTitle.trim().split(/\r?\n/);
-        // const dateTitle = dateBlockLines[0].trim(); // We don't display date title as a node for now
-        const eventGroupText = dateBlockLines.slice(1).join('\n'); // Content under the H3 date title
-
-        // Now split this content by H4 Event Group titles
+        const eventGroupText = dateBlockLines.slice(1).join('\n');
         const eventGroups = eventGroupText.trim().split(/\r?\n#### /).filter(group => group.trim() !== '');
 
         eventGroups.forEach(groupTextWithTitle => {
             const groupLines = groupTextWithTitle.trim().split(/\r?\n/);
-            // If the first line is empty (due to splitting artifacts), remove it.
             const groupTitleLine = groupLines[0].startsWith('####') ? groupLines[0].replace(/^####\s*/, '') : groupLines[0];
-            const groupContent = groupLines.slice(1).join('\n');
-
+            const groupContentAboveActions = groupLines.slice(1).join('\n'); // Content before the first "- **"
+            
             const groupTimestampMatch = groupTitleLine.match(/\(([^\)]+)\)/);
-            const groupTimestamp = groupTimestampMatch ? groupTimestampMatch[1] : '';
-            const groupTitle = groupTitleLine.replace(/\s*\([^\)]*\)/, '').trim();
+            const groupTimestampFallback = groupTimestampMatch ? groupTimestampMatch[1].trim() : 'N/A';
 
             // Regex to find lines starting with "- **Action Title** [(timestamp)]"
-            // Ensure it captures details correctly, even if no further "- **" lines follow.
-            const actionMatches = [...groupContent.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n(?:- \*\*|####|$))/g)];
-            
-            if (actionMatches.length === 0 && groupTitle) { // Handle cases where an H4 group might not have sub-actions
-                 // Create a node for the H4 group itself if no sub-actions are found
-                const actionNodeId = `action-${nodeIdCounter++}`;
-                const actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(groupContent.substring(0, 150).length / 45) -1) * 18;
-                nodes.push({
-                    id: actionNodeId,
-                    type: 'default',
-                    position: { x: xPositionMain, y: yPosition },
-                    data: { 
-                        label: (
-                            <div className="p-2 text-left">
-                                <div className="flex items-center mb-1">
-                                    <FaRegClock className="text-gray-400 mr-1.5 flex-shrink-0" size="0.8em" />
-                                    <span className="text-xs text-gray-500 font-medium">{groupTimestamp}</span>
+            // It will capture the action title, its optional timestamp, and the details following it.
+            const actionMatches = [...groupContentAboveActions.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n- \*\*|$)/g)];
+
+            if (actionMatches.length > 0) {
+                actionMatches.forEach(actionMatch => {
+                    const actionTitle = actionMatch[1].trim();
+                    const actionTimestamp = actionMatch[2] ? actionMatch[2].trim() : groupTimestampFallback;
+                    let actionDetails = actionMatch[3] ? actionMatch[3].trim().replace(/^- /gm, '  ') : '';
+                    actionDetails = actionDetails.split(/\r?\n\r?\n/)[0]; // Take only the first paragraph of details for summary
+
+                    const summary = actionDetails.substring(0, 160) + (actionDetails.length > 160 ? '...' : '');
+                    const actionNodeId = `action-${nodeIdCounter++}`;
+                    const actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(summary.length / 48) -1) * 16;
+
+                    nodes.push({
+                        id: actionNodeId,
+                        type: 'default',
+                        position: { x: xPositionMain, y: yPosition },
+                        data: { 
+                            label: (
+                                <div className="p-2.5 text-left">
+                                    <div className="flex items-center mb-1.5">
+                                        <FaRegClock className="text-slate-400 mr-1.5 flex-shrink-0" size="0.75em" />
+                                        <span className="text-2xs text-slate-500 font-medium tracking-wide">{actionTimestamp}</span>
+                                    </div>
+                                    <h3 className="text-xs font-semibold text-slate-700 mb-1.5 leading-tight" title={actionTitle}>{actionTitle.length > 50 ? actionTitle.substring(0,47)+'...':actionTitle}</h3>
+                                    <p className="text-2xs text-slate-600 leading-snug overflow-y-auto" style={{maxHeight: '45px'}}>{summary}</p>
                                 </div>
-                                <h3 className="text-xs font-semibold text-gray-800 mb-1 leading-tight" title={groupTitle}>{groupTitle.length > 45 ? groupTitle.substring(0,42)+'...':groupTitle}</h3>
-                                <p className="text-2xs text-gray-600 leading-snug overflow-y-auto" style={{maxHeight: '50px'}}>{groupContent.substring(0, 150)}</p>
+                            )
+                        },
+                        style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 100 },
+                    });
+
+                    if (lastActionNodeId) {
+                        edges.push({
+                            id: `edge-${lastActionNodeId}-to-${actionNodeId}`,
+                            source: lastActionNodeId,
+                            target: actionNodeId,
+                            type: 'smoothstep',
+                            animated: true,
+                            style: { stroke: '#e11d48', strokeWidth: 2, filter: 'drop-shadow(0 0 2px #e11d48)' },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 15, height: 15 },
+                        });
+                    }
+                    lastActionNodeId = actionNodeId;
+
+                    const extractedEntities = extractEntitiesFromEventText(actionDetails);
+                    extractedEntities.forEach((entity, entityIdx) => {
+                        const entityNodeId = `entity-${nodeIdCounter++}`;
+                        const styleFn = NODE_STYLES[entity.type] || NODE_STYLES.DEFAULT_ENTITY;
+                        const nodeStyle = styleFn(entity.value);
+                        
+                        const entityX = xPositionMain + (entityIdx % 2 === 0 ? -xOffsetEntity : xOffsetEntity);
+                        let entityY = yPosition + (actionNodeHeight / 2) - (ENTITY_NODE_HEIGHT / 2); // Base alignment
+                        // Stagger entities if there are more than 2 to avoid overlap with main timeline
+                        if (extractedEntities.length > 2) {
+                             entityY += (Math.floor(entityIdx / 2)) * (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY) * (entityIdx % 2 === 0 ? -1 : 1) * 0.6;
+                        }
+                        
+                        nodes.push({
+                            id: entityNodeId,
+                            data: { label: nodeStyle.label }, 
+                            position: { x: entityX, y: entityY },
+                            style: { ...nodeStyle, label: undefined },
+                            type: 'default',
+                        });
+                        edges.push({
+                            id: `edge-${actionNodeId}-to-${entityNodeId}`,
+                            source: actionNodeId,
+                            target: entityNodeId,
+                            type: 'smoothstep',
+                            style: { stroke: '#b0b8c5', strokeWidth: 1.2, opacity: 0.9 },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b8c5', width:10, height:10 },
+                        });
+                    });
+                    yPosition += actionNodeHeight + (VERTICAL_GAP_EVENT / 2); // Reduce gap for tighter timeline
+                });
+            } else if (groupTitle) { // If an H4 group has no "- **" sub-actions, create a node for the group itself.
+                const groupNodeId = `group-action-${nodeIdCounter++}`;
+                const groupSummary = groupContent.substring(0,150) + (groupContent.length > 150 ? '...' : '');
+                const groupNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(groupSummary.length / 48) -1) * 16;
+                nodes.push({
+                    id: groupNodeId,
+                    type: 'default',
+                    position: {x: xPositionMain, y: yPosition},
+                    data: {
+                         label: (
+                            <div className="p-2.5 text-left">
+                                <div className="flex items-center mb-1.5">
+                                    <FaRegClock className="text-slate-400 mr-1.5 flex-shrink-0" size="0.75em" />
+                                    <span className="text-2xs text-slate-500 font-medium tracking-wide">{groupTimestampFallback}</span>
+                                </div>
+                                <h3 className="text-xs font-semibold text-slate-700 mb-1.5 leading-tight" title={groupTitle}>{groupTitle.length > 50 ? groupTitle.substring(0,47)+'...':groupTitle}</h3>
+                                <p className="text-2xs text-slate-600 leading-snug overflow-y-auto" style={{maxHeight: '45px'}}>{groupSummary}</p>
                             </div>
                         )
                     },
-                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 80 },
+                    style: { ...NODE_STYLES.EVENT, height: groupNodeHeight, width: EVENT_NODE_WIDTH - 100, background: '#f8fafc', borderColor: '#cbd5e1' },
                 });
                  if (lastActionNodeId) {
                     edges.push({
-                        id: `edge-${lastActionNodeId}-to-${actionNodeId}`,
+                        id: `edge-${lastActionNodeId}-to-${groupNodeId}`,
                         source: lastActionNodeId,
-                        target: actionNodeId,
+                        target: groupNodeId,
                         type: 'smoothstep',
                         animated: true,
-                        style: { stroke: '#e11d48', strokeWidth: 2.2, filter: 'drop-shadow(0 0 2px #e11d48)' },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 16, height: 16 },
+                        style: { stroke: '#e11d48', strokeWidth: 2, filter: 'drop-shadow(0 0 2px #e11d48)' },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 15, height: 15 },
                     });
                 }
-                lastActionNodeId = actionNodeId;
-                yPosition += actionNodeHeight + VERTICAL_GAP_EVENT / 1.5;
+                lastActionNodeId = groupNodeId;
+                yPosition += groupNodeHeight + (VERTICAL_GAP_EVENT / 2);
             }
-
-            actionMatches.forEach(actionMatch => {
-                const actionTitle = actionMatch[1].trim();
-                const actionTimestamp = actionMatch[2] ? actionMatch[2].trim() : groupTimestamp;
-                const actionDetails = actionMatch[3] ? actionMatch[3].trim().replace(/^- /gm, '  ') : '';
-                const summary = actionDetails.substring(0, 150) + (actionDetails.length > 150 ? '...' : '');
-                const actionNodeId = `action-${nodeIdCounter++}`;
-                const actionNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(summary.length / 45) -1) * 18;
-
-                nodes.push({
-                    id: actionNodeId,
-                    type: 'default',
-                    position: { x: xPositionMain, y: yPosition },
-                    data: { 
-                        label: (
-                            <div className="p-2 text-left">
-                                <div className="flex items-center mb-1">
-                                    <FaRegClock className="text-gray-400 mr-1.5 flex-shrink-0" size="0.8em" />
-                                    <span className="text-xs text-gray-500 font-medium">{actionTimestamp || groupTimestamp}</span>
-                                </div>
-                                <h3 className="text-xs font-semibold text-gray-800 mb-1 leading-tight" title={actionTitle}>{actionTitle.length > 45 ? actionTitle.substring(0,42)+'...':actionTitle}</h3>
-                                <p className="text-2xs text-gray-600 leading-snug overflow-y-auto" style={{maxHeight: '50px'}}>{summary}</p>
-                            </div>
-                        )
-                    },
-                    style: { ...NODE_STYLES.EVENT, height: actionNodeHeight, width: EVENT_NODE_WIDTH - 80 },
-                });
-
-                if (lastActionNodeId) {
-                    edges.push({
-                        id: `edge-${lastActionNodeId}-to-${actionNodeId}`,
-                        source: lastActionNodeId,
-                        target: actionNodeId,
-                        type: 'smoothstep',
-                        animated: true,
-                        style: { stroke: '#e11d48', strokeWidth: 2.2, filter: 'drop-shadow(0 0 2px #e11d48)' },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#e11d48', width: 16, height: 16 },
-                    });
-                }
-                lastActionNodeId = actionNodeId;
-
-                // Entities for this action node
-                const extractedEntities = extractEntitiesFromEventText(actionDetails || detailsFull || groupContent);
-                extractedEntities.forEach((entity, entityIdx) => {
-                    const entityNodeId = `entity-${nodeIdCounter++}`;
-                    const styleFn = NODE_STYLES[entity.type] || NODE_STYLES.DEFAULT_ENTITY;
-                    const nodeStyle = styleFn(entity.value);
-                    
-                    const entityX = xPositionMain + (entityIdx % 2 === 0 ? -xOffsetEntity : xOffsetEntity);
-                    // Adjust Y to be relative to the current action node, not global yPosition directly for entities
-                    const entityY = yPosition + (actionNodeHeight / 2) - (ENTITY_NODE_HEIGHT / 2) + 
-                                  ((Math.floor(entityIdx / 2)) * (ENTITY_NODE_HEIGHT + VERTICAL_SPACING_ENTITY) * (entityIdx % 2 === 0 ? -1 : 1) ) +
-                                  (extractedEntities.length % 2 !== 0 && entityIdx === extractedEntities.length -1 ? 0 : (entityIdx % 2 === 0 ? -VERTICAL_SPACING_ENTITY/2 : VERTICAL_SPACING_ENTITY/2));
-                    
-                    nodes.push({
-                        id: entityNodeId,
-                        data: { label: nodeStyle.label }, 
-                        position: { x: entityX, y: entityY },
-                        style: { ...nodeStyle, label: undefined },
-                        type: 'default',
-                    });
-                    edges.push({
-                        id: `edge-${actionNodeId}-to-${entityNodeId}`,
-                        source: actionNodeId,
-                        target: entityNodeId,
-                        type: 'smoothstep',
-                        style: { stroke: '#a1a1aa', strokeWidth: 1 }, 
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#a1a1aa', width:10, height:10 },
-                    });
-                });
-                yPosition += actionNodeHeight + VERTICAL_GAP_EVENT / 1.5;
-            });
         });
     });
     return { nodes, edges };
