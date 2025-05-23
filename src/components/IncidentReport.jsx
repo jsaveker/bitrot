@@ -106,14 +106,15 @@ const createTimelineFlow = (markdownContent) => {
         eventGroups.forEach(groupTextWithTitle => {
             const groupLines = groupTextWithTitle.trim().split(/\r?\n/);
             const groupTitleLine = groupLines[0].startsWith('####') ? groupLines[0].replace(/^####\s*/, '') : groupLines[0];
-            const groupContentAboveActions = groupLines.slice(1).join('\n'); // Content before the first "- **"
+            const groupContentAboveActions = groupLines.slice(1).join('\n');
             
             const groupTimestampMatch = groupTitleLine.match(/\(([^\)]+)\)/);
             const groupTimestampFallback = groupTimestampMatch ? groupTimestampMatch[1].trim() : 'N/A';
+            // Initialize groupTitle from groupTitleLine directly, then try to refine if timestamp exists
+            let groupTitle = groupTitleLine.replace(/\s*\(([^\)]+)\)/, '').trim(); 
+            if (!groupTitle) groupTitle = groupTitleLine.trim(); // Fallback if removing timestamp made it empty
 
-            // Regex to find lines starting with "- **Action Title** [(timestamp)]"
-            // It will capture the action title, its optional timestamp, and the details following it.
-            const actionMatches = [...groupContentAboveActions.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n- \*\*|$)/g)];
+            const actionMatches = [...groupContentAboveActions.matchAll(/^- \*\*([^*]+)\*\*(?:\s*\(([^\)]+)\))?([\s\S]*?)(?=\r?\n(?:- \*\*|####|$))/g)];
 
             if (actionMatches.length > 0) {
                 actionMatches.forEach(actionMatch => {
@@ -189,9 +190,9 @@ const createTimelineFlow = (markdownContent) => {
                     });
                     yPosition += actionNodeHeight + (VERTICAL_GAP_EVENT / 2); // Reduce gap for tighter timeline
                 });
-            } else if (groupTitle) { // If an H4 group has no "- **" sub-actions, create a node for the group itself.
+            } else if (groupTitle) { // Now groupTitle should always be defined here
                 const groupNodeId = `group-action-${nodeIdCounter++}`;
-                const groupSummary = groupContent.substring(0,150) + (groupContent.length > 150 ? '...' : '');
+                const groupSummary = groupContentAboveActions.substring(0,150) + (groupContentAboveActions.length > 150 ? '...' : ''); // Use groupContentAboveActions
                 const groupNodeHeight = EVENT_NODE_BASE_HEIGHT + Math.max(0, Math.ceil(groupSummary.length / 48) -1) * 16;
                 nodes.push({
                     id: groupNodeId,
