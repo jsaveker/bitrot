@@ -95,8 +95,8 @@ const ModernIncidentView = () => {
     assignee: "Security Team",
     created: "2025-05-17T15:16:40Z",
     lastUpdated: "2025-05-19T12:30:00Z",
-    affectedSystems: ["EC2AMAZ-OSH4IUQ.attackrange.prptl.org"],
-    affectedUsers: ["ATTACKRANGE\\jl.picard"],
+    affectedSystems: ["EC2AMAZ-OSH4IUQ.corp.local"],
+    affectedUsers: ["CORP\\jl.picard"],
     attackVector: "ClickFix Social Engineering",
     c2Server: "172.31.7.63:4444",
     timelineEvents: [
@@ -109,7 +109,7 @@ const ModernIncidentView = () => {
         description: "User jl.picard compromised through ClickFix social engineering",
         severity: "critical",
         entities: [
-          { type: "user", value: "ATTACKRANGE\\jl.picard" },
+          { type: "user", value: "CORP\\jl.picard" },
           { type: "host", value: "EC2AMAZ-OSH4IUQ" },
           { type: "registry", value: "HKU\\S-1-5-21-216862292-1716178118-2570252875-1113\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU\\MRUList" }
         ],
