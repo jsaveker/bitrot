@@ -1,19 +1,10 @@
-Lesson 2: Backups - The Ultimate Defense
------------------------------------------
+Bring the signal back
+=====================
 
-Bit rot happens. Drives fail. Ransomware encrypts. Coffee spills.
-What's your plan?
+A checksum can tell you a file changed. It cannot reconstruct the original. An intact backup can.
 
-A backup is simply a *copy* of your important data stored *somewhere else*.
+In this challenge, save a copy, damage the working message, then restore the saved bytes. The matching SHA-256 fingerprints confirm recovery.
 
-- **Simple:** Copy files to a USB drive.
-- **Better:** Use backup software (Time Machine, Windows Backup) to automate copies to an external drive.
-- **Best:** The 3-2-1 Rule:
-    - **3** copies of your data
-    - On **2** different types of media (e.g., internal drive + external drive)
-    - With **1** copy stored off-site (e.g., cloud storage, drive at a friend's house).
+This tab-memory demonstration is not a real backup: closing or reloading the tab clears it. Real backups need independent storage and tested restores. The 3-2-1 approach keeps three copies on two kinds of media, with one copy off-site. Bitrot's freeze command does not create a backup; local files never decay automatically.
 
-Freezing a file here is like making a simple backup - it stops further changes (decay).
-Real backups protect against *total loss*.
-
-(Type 'lessons list' to see other topics.) 
+Open /learn for the interactive challenge.

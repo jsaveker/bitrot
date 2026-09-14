@@ -1,0 +1,7 @@
+{
+  "id": "2-backups",
+  "title": "Bring the signal back",
+  "kind": "backup",
+  "summary": "Detect the damage. Then recover from an intact copy.",
+  "body": "A checksum can tell you a file changed. It cannot reconstruct the original. An intact backup can.\n\nIn this challenge, save a copy, damage the working message, then restore the saved bytes. The matching SHA-256 fingerprints confirm recovery.\n\nThis tab-memory demonstration is not a real backup: closing or reloading the tab clears it. Real backups need independent storage and tested restores. The 3-2-1 approach keeps three copies on two kinds of media, with one copy off-site. Bitrot's freeze command does not create a backup; local files never decay automatically."
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1-checksums",
+    "title": "Spot the invisible change",
+    "kind": "checksum",
+    "summary": "One flipped bit. A completely different fingerprint.",
+    "body": "A cryptographic hash turns a file into a fixed-size fingerprint. SHA-256 produces 256 bits, shown as 64 hexadecimal characters.\n\nChange one bit in the file and its hash will almost certainly change. Compare against a trusted hash of the original to detect damage.\n\nA matching hash is useful evidence of integrity, but a checksum alone does not prove who created a file. A hash also cannot restore missing or damaged data. You need an intact copy for that."
+  },
+  {
+    "id": "2-backups",
+    "title": "Bring the signal back",
+    "kind": "backup",
+    "summary": "Detect the damage. Then recover from an intact copy.",
+    "body": "A checksum can tell you a file changed. It cannot reconstruct the original. An intact backup can.\n\nIn this challenge, save a copy, damage the working message, then restore the saved bytes. The matching SHA-256 fingerprints confirm recovery.\n\nThis tab-memory demonstration is not a real backup: closing or reloading the tab clears it. Real backups need independent storage and tested restores. The 3-2-1 approach keeps three copies on two kinds of media, with one copy off-site. Bitrot's freeze command does not create a backup; local files never decay automatically."
+  }
+]

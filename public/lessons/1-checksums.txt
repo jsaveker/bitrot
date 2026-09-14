@@ -1,15 +1,10 @@
-Lesson 1: What's a Checksum?
-------------------------------
+Spot the invisible change
+=========================
 
-Imagine sending a message across a noisy room. Did they hear it right?
-A checksum is like asking the receiver to add up all the numbers in the message and tell you the total.
+A cryptographic hash turns a file into a fixed-size fingerprint. SHA-256 produces 256 bits, shown as 64 hexadecimal characters.
 
-If the total matches what *you* calculated, the message *probably* arrived okay.
-If it doesn't match, something got scrambled!
+Change one bit in the file and its hash will almost certainly change. Compare against a trusted hash of the original to detect damage.
 
-Computers use complex math (like SHA-256 or MD5) to calculate a checksum (or 'hash') for files.
-Storing this hash lets you verify later if the file has changed even by a single bit.
+A matching hash is useful evidence of integrity, but a checksum alone does not prove who created a file. A hash also cannot restore missing or damaged data. You need an intact copy for that.
 
-It's a basic defense against silent data corruption!
-
-(Type 'lessons list' to see other topics.) 
+Open /learn for the interactive challenge.

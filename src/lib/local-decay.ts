@@ -6,6 +6,72 @@ export const MAX_PIXELS = 4_000_000;
 export const MAX_OPERATIONS = 1_000_000;
 export type DecayMode = "bit-flip" | "ascii-shuffle" | "color-drain";
 
+export function parseSeed(value: unknown = "bitrot"): string {
+  if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,32}$/.test(value))
+    throw new Error(
+      "Use a seed of 1–32 letters, numbers, hyphens or underscores.",
+    );
+  return value;
+}
+
+/** FNV-1a + Mulberry32. Part of recipe v1: never change without a version bump. */
+export function seededRandom(seed: string): () => number {
+  parseSeed(seed);
+  let state = 2166136261;
+  for (const character of seed)
+    state = Math.imul(state ^ character.charCodeAt(0), 16777619);
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let value = Math.imul(state ^ (state >>> 15), 1 | state);
+    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export interface ByteMetrics {
+  changed: number;
+  bits: number;
+  total: number;
+  buckets: number[];
+  image?: {
+    intensityRetained: number;
+    pixelsChanged: number;
+    totalPixels: number;
+  };
+}
+
+export function compareBytes(
+  original: Uint8Array,
+  result: Uint8Array,
+): ByteMetrics {
+  const total = Math.max(original.length, result.length);
+  let changed = 0,
+    bits = 0;
+  const buckets = Array<number>(64).fill(0),
+    counts = Array<number>(64).fill(0);
+  for (let i = 0; i < total; i++) {
+    const bucket = Math.min(63, Math.floor((i * 64) / total));
+    counts[bucket]++;
+    if (original[i] === result[i]) continue;
+    changed++;
+    buckets[bucket]++;
+    let xor =
+      i >= original.length || i >= result.length
+        ? 255
+        : original[i] ^ result[i];
+    while (xor) {
+      bits++;
+      xor &= xor - 1;
+    }
+  }
+  return {
+    changed,
+    bits,
+    total,
+    buckets: buckets.map((n, i) => (counts[i] ? n / counts[i] : 0)),
+  };
+}
+
 export function parseLevel(value: unknown): number {
   if (typeof value !== "string" || !/^(0|[1-9][0-9]*)$/.test(value)) {
     throw new Error(`Choose a whole-number level from 0 to ${MAX_LEVEL}.`);

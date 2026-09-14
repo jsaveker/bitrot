@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open the Vite URL. Local file selection and processing work without Cloudflare or storage credentials. To also serve lesson discovery and the existing read-only content routes:
+Open the Vite URL. Samples, local file selection, processing, and lessons work without Cloudflare or storage credentials. To also serve the compatibility endpoints and existing read-only content routes:
 
 ```bash
 npm run build
@@ -40,7 +40,7 @@ CI runs these checks on pull requests and pushes to main. TypeScript is pinned; 
 - `src/lib/decay.worker.ts` transforms a copy in a dedicated worker. A five-second timeout terminates stalled work.
 - `src/lib/local-decay.ts` validates levels, sizes, PNG dimensions, and mode names. Processing has a bounded operation count.
 - User-controlled labels have terminal controls stripped. Download names retain their extensions and remove unsafe filename characters.
-- Downloads use `application/octet-stream` blobs and the browser's download action. User content is never inserted into the DOM or previewed as HTML/SVG.
+- Downloads use `application/octet-stream` blobs and the browser's download action. User content is never interpreted as markup. Text previews are escaped React text nodes. Validated PNGs are decoded into canvases; HTML/SVG documents are never embedded or executed.
 - `server/retired-files.ts` returns a fixed, non-cacheable 410 response for the old cloud-file API. `functions/_middleware.ts` also covers bare and nested legacy paths.
 - `/upload`, `/list`, `/view`, `/rot`, and `/freeze` reject all HTTP methods before reading bodies or accessing storage. The old scheduled export is inert.
 
@@ -50,7 +50,19 @@ The source no longer requires KV/R2 bindings. Existing Cloudflare objects are no
 
 The tab accepts 10 files and 20 MiB of originals, with a 5 MiB limit per input/output. It keeps each original and at most one result; temporary worker copies also consume memory. PNG processing is capped at 4 million pixels and 4096 pixels per side. Files disappear when the page reloads or closes.
 
-Levels 0–10 control bounded transformation intensity. Level 0 returns an unchanged copy. Random changes are not reproducible; repeated commands can differ. ASCII shuffle rejects non-ASCII bytes rather than silently damaging an unsupported encoding. PNG colour drain uses browser decoding and normalises pixels through a canvas.
+Levels 0–10 control bounded transformation intensity. Level 0 returns an unchanged copy. Byte modes use a versioned seeded generator. Repeated recipes reproduce byte changes exactly. Colour drain uses intensity only; PNG encoders may produce different file bytes across browsers. ASCII shuffle rejects non-ASCII bytes rather than silently damaging an unsupported encoding. PNG colour drain uses browser decoding and normalises pixels through a canvas.
+
+## Experiment and content architecture
+
+`local-files.ts` is the shared tab store and worker API. `commands.ts` parses terminal commands and calls that same API. `useFiles` subscribes with `useSyncExternalStore`, so commands, file selection, and visual controls update one state. The terminal is loaded only when opened; legacy incident routes and lessons have separate chunks.
+
+The last 12 history entries per file contain recipes and measured statistics, not file buffers. Comparing two runs temporarily recomputes two bounded results. Shared URLs carry only a supported sample ID, recipe version, mode, level, and validated seed. They cannot resolve local files. Preserve v1 sample bytes and the seeded algorithm; introduce a new recipe version for incompatible changes.
+
+`content/lessons/*.json` is the content source. `npm run lessons:build` generates `src/generated/lessons.json` and the compatibility text files in `public/lessons`. Development and build lifecycle scripts run the generator automatically. The browser imports generated content; the read-only `/lessons` endpoint serves an index from the same source. No content API is required for the lab or lessons.
+
+Only the visual-effects preference is stored in localStorage. File bytes, names, seeds, history, and lesson backups are not persisted. Effects stop when the page is hidden, when the user turns them off, or when reduced motion is requested.
+
+See [Browser checks](BROWSER-CHECKS.md) for interaction regression coverage. Unit tests cover deterministic fixtures, recipe validation, actual SHA-256 results, store limits, content consistency, and the retired-route security policy.
 
 ## Hosting and legacy content
 

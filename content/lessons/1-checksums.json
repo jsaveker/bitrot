@@ -1,0 +1,7 @@
+{
+  "id": "1-checksums",
+  "title": "Spot the invisible change",
+  "kind": "checksum",
+  "summary": "One flipped bit. A completely different fingerprint.",
+  "body": "A cryptographic hash turns a file into a fixed-size fingerprint. SHA-256 produces 256 bits, shown as 64 hexadecimal characters.\n\nChange one bit in the file and its hash will almost certainly change. Compare against a trusted hash of the original to detect damage.\n\nA matching hash is useful evidence of integrity, but a checksum alone does not prove who created a file. A hash also cannot restore missing or damaged data. You need an intact copy for that."
+}
