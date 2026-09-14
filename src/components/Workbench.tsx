@@ -35,10 +35,12 @@ export default function Workbench({
   compact = false,
   initialRecipe,
   onTerminal,
+  onLoadingChange,
 }: {
   compact?: boolean;
   initialRecipe?: Recipe | null;
   onTerminal?: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }) {
   const { file, files, busy } = useFiles();
   const [level, setLevel] = useState(initialRecipe?.level ?? 4),
@@ -65,6 +67,7 @@ export default function Workbench({
   };
   const applyRecipe = async (recipe: Recipe) => {
     setLoading(true);
+    onLoadingChange?.(true);
     setError("");
     setMode(recipe.mode);
     setLevel(recipe.level);
@@ -78,6 +81,7 @@ export default function Workbench({
       setError(error instanceof Error ? error.message : "Sample unavailable.");
     } finally {
       setLoading(false);
+      onLoadingChange?.(false);
     }
   };
   useEffect(() => {
@@ -162,14 +166,14 @@ export default function Workbench({
       className={`workbench ${compact ? "compact" : ""}`}
       aria-label="Data decay experiment"
       aria-busy={disabled}
+      data-processing={disabled}
     >
       <div className="workbench-bar">
         <span className="eyebrow">
-          <span className="status-dot" />{" "}
-          {compact ? "LIVE EXPERIMENT" : "EXPERIMENT WORKSPACE"}
+          File inspector
         </span>
         <span className="muted mono">
-          {disabled ? "PROCESSING…" : "LOCAL / READY"}
+          {disabled ? "Working…" : "Ready"}
         </span>
       </div>
       {!compact && (
@@ -217,85 +221,9 @@ export default function Workbench({
         </div>
       )}
       <div className="workbench-body">
-        <div className="preview-column">
-          <div className="preview-bar">
-            <span className="mono file-label">
-              {file?.filename ?? "NO FILE SELECTED"}{" "}
-              <span className="muted">
-                {file ? `/ ${(file.size / 1024).toFixed(1)} KiB` : ""}
-              </span>
-            </span>
-            <div className="segmented" aria-label="Preview mode">
-              <button
-                aria-pressed={view === "compare"}
-                onClick={() => setView("compare")}
-              >
-                Compare
-              </button>
-              <button
-                aria-pressed={view === "bytes"}
-                onClick={() => setView("bytes")}
-              >
-                Bytes
-              </button>
-            </div>
-          </div>
-          {file ? (
-            <BytePreview file={file} view={view} />
-          ) : (
-            <div className="empty-preview">
-              <FolderOpen size={32} />
-              <h3>
-                {loading
-                  ? "Opening the archive…"
-                  : "Your next experiment starts here."}
-              </h3>
-              <p>Choose a sample below or load a local file.</p>
-              <button
-                className="button secondary"
-                disabled={disabled}
-                onClick={() => void applyRecipe(PRESETS[0].recipe)}
-              >
-                Try the lunar sample
-              </button>
-            </div>
-          )}
-          <div className="measurement-strip">
-            <div>
-              <span className="eyebrow">
-                {metrics?.image ? "RGB INTENSITY RETAINED" : "BYTES CHANGED"}
-              </span>
-              <strong>
-                {(metrics?.image?.intensityRetained ?? percent).toFixed(2)}
-                <small>%</small>
-              </strong>
-            </div>
-            <div>
-              <span className="eyebrow">
-                {metrics?.image ? "PIXELS CHANGED" : "BITS CHANGED"}
-              </span>
-              <strong>
-                {(
-                  metrics?.image?.pixelsChanged ??
-                  metrics?.bits ??
-                  0
-                ).toLocaleString()}
-              </strong>
-            </div>
-            <div className="map-measurement">
-              <span className="eyebrow">CHANGE DISTRIBUTION</span>
-              <ByteMap metrics={metrics} />
-            </div>
-          </div>
-          <p className="measurement-note">
-            {file?.run?.recipe.mode === "color-drain"
-              ? "Intensity is measured from mean RGB values. The byte map includes PNG re-encoding."
-              : "Measurements compare the complete result with the untouched original."}
-          </p>
-        </div>
         <div className="controls-column">
           <div className="control-heading">
-            <span className="eyebrow">DECAY CONTROLS</span>
+              <span className="eyebrow">Alter working copy</span>
             <span className="mono muted">00—10</span>
           </div>
           <label className="field">
@@ -363,7 +291,7 @@ export default function Workbench({
             {disabled
               ? "Processing…"
               : compact
-                ? "Run experiment"
+                ? "Apply decay"
                 : "Apply decay"}
           </button>
           {!compact && (
@@ -393,7 +321,7 @@ export default function Workbench({
           )}
           {compact ? (
             <Link to="/lab" className="text-link">
-              Open the full lab <ArrowUpRight size={16} />
+              Full workbench <ArrowUpRight size={16} />
             </Link>
           ) : (
             <>
@@ -422,8 +350,84 @@ export default function Workbench({
           )}
           <p className="local-note">
             {compact
-              ? "No uploads. No account. Just curiosity."
+              ? "Working copy only. Your original stays intact."
               : "Files stay in this tab. Reloading clears them. Up to 5 MiB per file."}
+          </p>
+        </div>
+        <div className="preview-column">
+          <div className="preview-bar">
+            <span className="mono file-label">
+              {file?.filename ?? "NO FILE SELECTED"}{" "}
+              <span className="muted">
+                {file ? `/ ${(file.size / 1024).toFixed(1)} KiB` : ""}
+              </span>
+            </span>
+            <div className="segmented" aria-label="Preview mode">
+              <button
+                aria-pressed={view === "compare"}
+                onClick={() => setView("compare")}
+              >
+                Compare
+              </button>
+              <button
+                aria-pressed={view === "bytes"}
+                onClick={() => setView("bytes")}
+              >
+                Bytes
+              </button>
+            </div>
+          </div>
+          {file ? (
+            <BytePreview file={file} view={view} />
+          ) : (
+            <div className="empty-preview">
+              <FolderOpen size={32} />
+              <h3>
+                {loading
+                  ? "Opening the archive…"
+                  : "No file open"}
+              </h3>
+              <p>Choose a sample below or load a local file.</p>
+              <button
+                className="button secondary"
+                disabled={disabled}
+                onClick={() => void applyRecipe(PRESETS[0].recipe)}
+              >
+                Try the lunar sample
+              </button>
+            </div>
+          )}
+          <div className="measurement-strip">
+            <div>
+              <span className="eyebrow">
+                {metrics?.image ? "RGB INTENSITY RETAINED" : "BYTES CHANGED"}
+              </span>
+              <strong>
+                {(metrics?.image?.intensityRetained ?? percent).toFixed(2)}
+                <small>%</small>
+              </strong>
+            </div>
+            <div>
+              <span className="eyebrow">
+                {metrics?.image ? "PIXELS CHANGED" : "BITS CHANGED"}
+              </span>
+              <strong>
+                {(
+                  metrics?.image?.pixelsChanged ??
+                  metrics?.bits ??
+                  0
+                ).toLocaleString()}
+              </strong>
+            </div>
+            <div className="map-measurement">
+              <span className="eyebrow">CHANGE DISTRIBUTION</span>
+              <ByteMap metrics={metrics} />
+            </div>
+          </div>
+          <p className="measurement-note">
+            {file?.run?.recipe.mode === "color-drain"
+              ? "Intensity is measured from mean RGB values. The byte map includes PNG re-encoding."
+              : "Measurements compare the complete result with the untouched original."}
           </p>
         </div>
       </div>
@@ -440,7 +444,7 @@ export default function Workbench({
       {!compact && (
         <div className="history">
           <div className="section-line">
-            <h3>Experiment timeline</h3>
+            <h3>Run history</h3>
             <span>Replay from the original · last 12 runs</span>
           </div>
           {file?.history.length ? (
@@ -473,7 +477,7 @@ export default function Workbench({
       )}
       {!compact && (
         <div className="preset-strip">
-          <span className="eyebrow">TRY A PRESET</span>
+          <span className="eyebrow">Sample presets</span>
           {PRESETS.map((preset) => (
             <button
               key={preset.name}

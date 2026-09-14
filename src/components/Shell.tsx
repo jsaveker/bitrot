@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { ArrowUpRight, AudioLines, ShieldCheck } from "lucide-react";
+import Wordmark from "./Wordmark";
 const EffectsContext = createContext(false);
 export const useEffects = () => useContext(EffectsContext);
 export default function Shell({ children }: { children: ReactNode }) {
@@ -35,7 +35,7 @@ export default function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
   useEffect(() => {
-    document.title = `${pathname === "/lab" ? "Data Decay Lab" : pathname === "/learn" ? "Integrity Lessons" : "Break a few bits. See what survives."} — Bitrot`;
+    document.title = `${pathname === "/lab" ? "Workbench" : pathname === "/learn" ? "Field manual" : "File decay utility"} — Bitrot`;
     window.scrollTo(0, 0);
   }, [pathname]);
   return (
@@ -46,17 +46,14 @@ export default function Shell({ children }: { children: ReactNode }) {
         </a>
         <header className="site-header">
           <Link to="/" className="brand" aria-label="Bitrot home">
-            <span className="brand-mark" aria-hidden="true">
-              ▥
-            </span>
-            BITROT<span className="brand-suffix">/SH</span>
+            <Wordmark /><span className="brand-suffix">.sh</span>
           </Link>
           <nav aria-label="Main navigation">
             <NavLink to="/" end>
-              Overview
+              Samples
             </NavLink>
-            <NavLink to="/lab">The lab</NavLink>
-            <NavLink to="/learn">Learn</NavLink>
+            <NavLink to="/lab">Workbench</NavLink>
+            <NavLink to="/learn">Field manual</NavLink>
           </nav>
           <button
             className="effects-button"
@@ -74,24 +71,21 @@ export default function Shell({ children }: { children: ReactNode }) {
               reduced ? "Reduced motion is respected" : "Toggle visual effects"
             }
           >
-            <AudioLines size={16} aria-hidden="true" />
-            <span>Effects {effects ? "on" : "off"}</span>
+            <span className="motion-check" aria-hidden="true">{effects ? "×" : " "}</span>
+            <span>Motion {effects ? "on" : "off"}</span>
           </button>
         </header>
         {children}
         <footer className="site-footer">
-          <span>
-            <ShieldCheck size={15} aria-hidden="true" /> Local experiments.
-            Original files stay untouched.
-          </span>
+          <span>Local processing. Original files stay untouched.</span>
           <a
             href="https://github.com/jsaveker/bitrot"
             target="_blank"
             rel="noreferrer"
           >
-            Built for the curious <ArrowUpRight size={14} aria-hidden="true" />
+            Source code
           </a>
-          <span className="footer-id">BITROT / 002</span>
+          <span className="footer-id">bitrot.sh</span>
         </footer>
       </div>
     </EffectsContext.Provider>

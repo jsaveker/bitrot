@@ -192,7 +192,7 @@ export function ByteMap({ metrics }: { metrics?: ByteMetrics }) {
       role="img"
       aria-label={
         metrics
-          ? `Byte change map: ${metrics.changed} of ${metrics.total} bytes changed. Brighter cells indicate more changes.`
+          ? `Byte change map: ${metrics.changed} of ${metrics.total} bytes changed. Darker cells indicate more changes.`
           : "Byte change map: unchanged original"
       }
     >
@@ -201,7 +201,7 @@ export function ByteMap({ metrics }: { metrics?: ByteMetrics }) {
           key={i}
           style={{
             backgroundColor: value
-              ? `rgba(208, 246, 107, ${0.2 + value * 0.8})`
+              ? `rgba(134, 45, 59, ${0.25 + value * 0.75})`
               : undefined,
           }}
         />

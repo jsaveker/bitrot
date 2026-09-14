@@ -48,3 +48,9 @@ Checked against the local production build in Chrome and the Codex in-app browse
 - The existing 12 security tests plus 7 experiment/loading tests pass; production and Functions builds pass.
 
 Chrome extension file selection was unavailable with its current permissions, so the native-file flow was verified in the in-app browser instead: local text transformed successfully; HTML remained inert; empty and oversized files were rejected; local files could not be shared; and reloading left only the automatically loaded bundled sample. No extension permissions were changed. Native chooser cancellation, Safari/Firefox, and physical-device behavior have not been verified.
+
+## Vintage utility refresh — September 14, 2026
+
+The sample directory replaces the homepage preset cards. Selecting an entry runs the preset in place, disables further selection while loading, and moves focus and scroll position to the inspector. At phone widths the compact controls appear above the preview. The full workbench retains file import, download, recipe sharing, history, comparisons, and the terminal. The field manual supports a direct backup link at `/learn?lesson=backup`.
+
+Checked the local production build in the in-app browser at 1440 px and 390 px, with additional 320 px overflow checks on all three routes. Verified sample switching and focus, the 49-byte/174-bit transmission result, keyboard intensity control, two-run comparison, terminal loading, and backup restoration with matching SHA-256 hashes. No browser console errors were reported during these checks. Physical phone and Safari behavior remain unverified.

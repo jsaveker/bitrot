@@ -21,9 +21,8 @@ export default function Lab() {
     <main id="main" className="page-width lab-page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow muted">THE DATA DECAY LAB / 002</span>
-          <h1>Introduce a little chaos.</h1>
-          <p>Change a copy. Inspect the damage. Replay what happened.</p>
+          <h1>Workbench</h1>
+          <p>Inspect, alter, compare and save a working copy.</p>
         </div>
         <button
           className="button secondary"
@@ -55,7 +54,7 @@ export default function Lab() {
           aria-label="Terminal"
         >
           <div className="terminal-heading">
-            <span>TERMINAL / SAME FILES, SAME ENGINE</span>
+            <span>Command line · current session</span>
             <button onClick={() => setTerminal(false)}>Close</button>
           </div>
           <Suspense

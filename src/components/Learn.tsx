@@ -7,14 +7,15 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import lessons from "../generated/lessons.json";
 import { compareBytes } from "../lib/local-decay";
 import { flipOneBit, sha256 } from "../lib/integrity";
 const original = new TextEncoder().encode("THE SIGNAL IS STILL HERE.");
 export default function Learn() {
-  const [selected, setSelected] = useState(0),
-    [working, setWorking] = useState<Uint8Array>(original.slice()),
+  const [search, setSearch] = useSearchParams();
+  const selected = search.get("lesson") === "backup" ? 1 : 0;
+  const [working, setWorking] = useState<Uint8Array>(original.slice()),
     [backup, setBackup] = useState<Uint8Array | null>(null);
   const [hashes, setHashes] = useState<{
       original: string;
@@ -25,6 +26,11 @@ export default function Learn() {
     [restored, setRestored] = useState(false);
   const lesson = lessons[selected],
     damaged = compareBytes(original, working).bits > 0;
+  useEffect(() => {
+    setWorking(original.slice());
+    setBackup(null);
+    setRestored(false);
+  }, [selected]);
   useEffect(() => {
     let active = true;
     setHashes(null);
@@ -59,11 +65,8 @@ export default function Learn() {
     <main id="main" className="page-width learn-page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow muted">
-            FIELD NOTES / INTERACTIVE LESSONS
-          </span>
-          <h1>Know what survives.</h1>
-          <p>Two small experiments in keeping your data intact.</p>
+          <h1>Field manual</h1>
+          <p>Detect a damaged file. Recover an intact copy.</p>
         </div>
         <span className="lesson-progress mono">
           {finished.length} / {lessons.length} explored
@@ -71,14 +74,13 @@ export default function Learn() {
       </div>
       <div className="lesson-layout">
         <aside className="lesson-sidebar">
-          <div className="eyebrow muted">THE FUNDAMENTALS</div>
+          <div className="eyebrow muted">Contents</div>
           {lessons.map((item, i) => (
             <button
               key={item.id}
               aria-pressed={selected === i}
               onClick={() => {
-                setSelected(i);
-                reset();
+                setSearch(item.kind === "backup" ? { lesson: "backup" } : {});
               }}
             >
               <span className="lesson-number">
@@ -99,19 +101,17 @@ export default function Learn() {
           <div className="sidebar-note">
             <ShieldCheck size={20} />
             <p>
-              Real bytes. Real hashes.
-              <br />
-              Everything happens on your device.
+              These exercises run on your device. Reloading clears your work.
             </p>
           </div>
           <Link to="/lab" className="text-link">
-            Return to the lab →
+            Open workbench →
           </Link>
         </aside>
         <article className="lesson-content">
           <div className="lesson-intro">
             <span className="eyebrow">
-              LESSON 0{selected + 1} / {lesson.kind.toUpperCase()}
+              {String(selected + 1).padStart(2, "0")} / {lesson.kind === "checksum" ? "Damage detection" : "File recovery"}
             </span>
             <h2>{lesson.title}</h2>
             <p>{lesson.summary}</p>
@@ -254,8 +254,7 @@ export default function Learn() {
               <button
                 className="text-link"
                 onClick={() => {
-                  setSelected(1);
-                  reset();
+                  setSearch({ lesson: "backup" });
                 }}
               >
                 Next: recover the original →

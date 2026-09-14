@@ -1,84 +1,62 @@
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Fingerprint,
-  Radio,
-  ScanLine,
-} from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useFiles } from "../hooks/useFiles";
+import { PRESETS, type Recipe } from "../lib/recipes";
 import Workbench from "./Workbench";
-import { PRESETS, recipeSearch } from "../lib/recipes";
+
 export default function Home() {
+  const { file, busy } = useFiles();
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [selection, setSelection] = useState<{ recipe: Recipe; serial: number } | null>(null);
   return (
     <main id="main" className="home page-width">
-      <div className="hero-topline">
-        <span className="eyebrow">AN EXPERIMENT IN DIGITAL ENTROPY</span>
-        <span className="mono muted">EST. 2025 / STILL DECAYING</span>
-      </div>
-      <div className="hero">
+      <div className="page-heading">
         <div>
-          <h1>
-            Break a few bits.
-            <br />
-            <span>See what survives.</span>
-          </h1>
-          <p>
-            Nothing digital lasts forever. Turn up the noise, pull apart a file,
-            and discover what holds it together.
-          </p>
+          <h1>File decay utility</h1>
+          <p>Open a sample. Alter a copy. Inspect what changed.</p>
         </div>
-        <div className="hero-aside">
-          <span className="ascii-signature" aria-hidden="true">
-            {"01000010\n01001001\n01010100"}
-          </span>
-          <span className="eyebrow">
-            A LITTLE DAMAGE.
-            <br />A LOT TO DISCOVER.
-          </span>
-        </div>
+        <Link className="button secondary" to="/lab">Open your own file…</Link>
       </div>
-      <Workbench compact />
-      <section
-        className="experiments-section"
-        aria-labelledby="experiments-title"
-      >
-        <div className="section-line">
-          <h2 id="experiments-title">Pick something to break.</h2>
-          <span>THREE WAYS TO LOSE THE SIGNAL</span>
+      <div className="archive-layout">
+        <div className="archive-workspace" id="sample-inspector" tabIndex={-1}>
+          <Workbench key={selection?.serial ?? 0} compact initialRecipe={selection?.recipe} onLoadingChange={setSampleLoading} />
+          <div className="manual-index">
+            <span>From the field manual</span>
+            <Link to="/learn"><span>01</span> Detect damage with a checksum</Link>
+            <Link to="/learn?lesson=backup"><span>02</span> Recover from a backup</Link>
+          </div>
         </div>
-        <div className="experiment-cards">
+        <aside className="sample-directory" aria-label="Sample directory">
+          <h2>Sample directory</h2>
+          <div className="directory-count">2 files / 3 experiments</div>
           {PRESETS.map((preset, i) => {
-            const Icon = [ScanLine, Radio, Fingerprint][i];
+            const selected = file?.sample === preset.recipe.sample && file?.run?.recipe.mode === preset.recipe.mode;
             return (
-              <Link
+              <button
                 key={preset.name}
-                to={`/lab?${recipeSearch(preset.recipe)}`}
-                className="experiment-card"
+                className="sample-entry"
+                aria-pressed={selected}
+                disabled={busy || sampleLoading}
+                onClick={() => {
+                  setSampleLoading(true);
+                  setSelection({ recipe: preset.recipe, serial: (selection?.serial ?? 0) + 1 });
+                  document.getElementById("sample-inspector")?.focus({ preventScroll: true });
+                  document.getElementById("sample-inspector")?.scrollIntoView({ block: "start" });
+                }}
               >
-                <div className="card-index">
-                  <span>EXPERIMENT / 0{i + 1}</span>
-                  <Icon size={22} />
-                </div>
-                <h3>{preset.name}</h3>
-                <p>{preset.description}</p>
-                <span className="card-link">
-                  Try experiment <ArrowUpRight size={16} />
+                <span className={`sample-thumbnail specimen-${i}`} aria-hidden="true">
+                  {i === 0 ? <img src="/samples/lunar.png" alt="" width="160" height="100" /> :
+                    <span>{i === 1 ? "DEEP SPACE NETWORK\nMISSION: VOYAGER\nSIGNAL: STILL HERE\n------------------\nAcross the dark," : "44 45 45 50 20 53\n50 41 43 45 20 4e\n45 54 57 4f 52 4b\n2f 20 41 52 43 48\n49 56 45 20 30 30"}</span>}
                 </span>
-              </Link>
+                <span className="sample-filename">{i === 0 ? "lunar.png" : "transmission.txt"}</span>
+                <span className="sample-operation">{preset.name}</span>
+                <span className="sample-details">{i === 0 ? "PNG · NASA / 1968" : i === 1 ? "TEXT · ASCII shuffle" : "TEXT · Bit flip"}</span>
+              </button>
             );
           })}
-        </div>
-      </section>
-      <Link className="learn-banner" to="/learn">
-        <span className="eyebrow">UNDERSTAND THE DAMAGE</span>
-        <strong>
-          A checksum can spot it.
-          <br />A backup can save it.
-        </strong>
-        <span>
-          Learn by breaking things <ArrowRight size={20} />
-        </span>
-      </Link>
+          <p className="directory-note">Bundled samples.<br />The originals stay intact.</p>
+        </aside>
+      </div>
     </main>
   );
 }
