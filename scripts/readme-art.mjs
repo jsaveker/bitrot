@@ -32,8 +32,8 @@ ${text(114, 54, 12, "#8aa59e", "bitrot.sh / data decay laboratory", 'letter-spac
 ${text(60, 188, 105, "#b7f36b", "BITROT", 'font-weight="900" letter-spacing="3"')}
 <path d="M62 201H438" stroke="#b7f36b" stroke-width="3"/>
 ${text(60, 252, 28, "#f1f7f0", "Break a few bits. Learn what survives.", 'font-weight="700"')}
-${text(60, 290, 18, "#a5bbb7", "Data decay · integrity lessons · security visualisations")}
-${text(60, 362, 12, "#67d7c7", "[ EXPERIMENTAL ]", 'letter-spacing="2"')}
+${text(60, 290, 18, "#a5bbb7", "Data decay · integrity lessons · files stay on your device")}
+${text(60, 362, 12, "#67d7c7", "[ LOCAL-ONLY LAB ]", 'letter-spacing="2"')}
 ${text(899, 362, 12, "#a4adc3", "0100 → 0110", 'letter-spacing="5"')}${pixels}`,
   ),
 );
@@ -44,15 +44,15 @@ await writeFile(
   svg(
     1200,
     270,
-    "From terminal to stored bytes",
-    "The browser calls Pages Functions. KV holds file metadata and R2 holds file levels. Lessons and incident content are bundled static assets.",
+    "Local files, local experiments",
+    "Local files stay in tab memory, a browser worker transforms a copy, and downloads save the result without uploading file data.",
     `
 <rect width="1200" height="270" rx="16" fill="#0a171c"/>
-${card(30, "01 / INTERFACE", "Browser", "React + xterm.js", "Terminal and visualisations", "#b7f36b")}
-${card(430, "02 / REQUESTS", "Pages Functions", "TypeScript handlers", "Upload, retrieve, transform", "#5ce1d2")}
-${card(830, "03 / STORAGE", "KV + R2", "KV: file metadata", "R2: original and saved levels", "#bb8cff")}
+${card(30, "01 / CHOOSE", "Local file", "Original held in tab memory", "No upload or cloud archive", "#b7f36b")}
+${card(430, "02 / EXPERIMENT", "Browser worker", "Bounded transformations", "Your original stays unchanged", "#5ce1d2")}
+${card(830, "03 / SAVE", "Download", "Save the original or result", "Close the page to clear the tab", "#bb8cff")}
 <path d="M384 108H413m-8-7 8 7-8 7M784 108H813m-8-7 8 7-8 7" fill="none" stroke="#5ce1d2" stroke-width="2"/>
-${text(600, 235, 16, "#94acae", "Lessons, detection diagrams, and incident content ship as static assets.", 'text-anchor="middle"')}`,
+${text(600, 235, 16, "#94acae", "File contents and filenames never leave your browser.", 'text-anchor="middle"')}`,
   ),
 );
 console.log("Generated Bitrot README banner and architecture graphic.");
