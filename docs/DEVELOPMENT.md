@@ -54,7 +54,9 @@ Levels 0–10 control bounded transformation intensity. Level 0 returns an uncha
 
 ## Hosting and legacy content
 
-The existing Cloudflare Pages Git integration deploys the frontend and Functions. Review the CI and Cloudflare checks before merging a pull request, then verify the production legacy routes return 410 with `X-Bitrot-File-Policy: local-only-v1`.
+The existing Cloudflare Pages Git integration automatically deploys `main`. Automatic branch previews are paused so stale branches cannot republish the retired cloud-file implementation. Use local previews for pull requests and keep new branches based on the secured main branch. Re-enabling Cloudflare branch previews requires an explicit hosting configuration change.
+
+Review CI before merging, then verify the production deployment and confirm legacy file routes return 410 with `X-Bitrot-File-Policy: local-only-v1`. Historical deployments that retained file-storage bindings have been retired; stored objects themselves are preserved.
 
 Other pre-existing routes (`/attack`, `/incident`, `/inc`) remain in the repository. They are separate security-content demonstrations and are not featured as part of the data-decay lab. See [incident demo notes](../INCIDENT_DEMO.md) for their limitations.
 
