@@ -1,110 +1,114 @@
-# Bit Rot Laboratory (bitrot.sh)
+<p align="center">
+  <img src="docs/images/bitrot-banner.svg" alt="Bitrot — break a few bits, learn what survives. A cyberpunk data integrity playground." width="100%" />
+</p>
 
-Welcome to the Bit Rot Laboratory! This is a tongue-in-cheek, cyberpunk-themed single-page application where files and text are deliberately exposed to simulated bit-rot.
+<p align="center">
+  <strong>A terminal playground for data decay, integrity lessons, and security visualisations.</strong><br />
+  Deliberately corrupt disposable files. Explore how data changes. Follow the evidence in an attack timeline.
+</p>
 
-Upload your data and watch it corrode bit-by-bit, either in real-time (eventually!) or on a schedule. Learn a little about why real-world data decays and how to defend against it through educational blurbs and interactive commands.
+<p align="center">
+  <a href="https://bitrot.sh"><strong>Visit Bitrot ↗</strong></a> ·
+  <a href="https://bitrot.sh/lab">Open the lab</a> ·
+  <a href="docs/COMMANDS.md">Command guide</a> ·
+  <a href="docs/DEVELOPMENT.md">Developer guide</a>
+</p>
 
-**Status:** Core functionality (upload, scheduled decay, listing, viewing levels, freezing) is implemented. Further decay algorithms, API, and advanced features are planned.
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React 19" />
+  <img src="https://img.shields.io/badge/Cloudflare-Pages%20%2B%20R2-f38020?style=flat-square" alt="Cloudflare Pages and R2" />
+  <img src="https://img.shields.io/badge/Status-experimental-a78bfa?style=flat-square" alt="Status: experimental" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-b7f36b?style=flat-square" alt="Apache 2.0 license" /></a>
+</p>
 
-## Lab Features
+![The Bitrot landing page with a glowing terminal, ASCII lettering, and animated corruption status](docs/images/landing.jpg)
 
-Interact with the lab using a terminal interface:
+## Inside Bitrot
 
-*   **`help`**: Shows the list of available commands.
-*   **`upload`**: Initiates a file upload via a dialog box. Uploaded files begin their decay journey.
-*   **`list`**: Displays a list of your files currently submitted to the lab, showing their ID, name, size, and creation date.
-*   **`view <id> [level]`**: Downloads a specific decay level of a file. If `[level]` is omitted, downloads the latest generated level.
-*   **`rot <id> --level N [--mode M]`**: Generates and downloads a specific decay level (`N`) on-demand, optionally overriding the file's default decay mode (`M`). Available modes: `bit-flip`, `ascii-shuffle`, `color-drain`.
-*   **`freeze <id>`**: Halts the scheduled decay process for the specified file (equivalent to making a backup).
-*   **`lessons [list | <id>]`**: Displays mini-tutorials on data integrity concepts. Use `lessons list` to see topics or `lessons <id>` (e.g., `lessons 1-checksums`) to read one.
-*   **`exit`**: Returns to the landing page.
+Bitrot combines a deliberately mischievous data-decay experiment with educational security content. The terminal is real: commands call Cloudflare Functions to store files, generate altered versions, and retrieve lessons. The corruption meter on the landing page is decorative.
 
-### Easter Eggs
+| Explore                                                 | What you can do                                                                                          |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [Data Decay Lab](https://bitrot.sh/lab)                 | Upload a disposable sample, list stored files, retrieve saved levels, and generate a corrupted download. |
+| [Integrity lessons](docs/COMMANDS.md#learn-and-explore) | Read short introductions to checksums and backups directly in the terminal.                              |
+| [Attack-flow library](https://bitrot.sh/attack/)        | Browse four detection diagrams covering ClickFix, browser remote debugging, and RMM tools.               |
+| [Incident report](https://bitrot.sh/incident)           | Explore a historical incident narrative and an interactive graph of events and entities.                 |
+| [Incident dashboard demo](https://bitrot.sh/inc)        | Search and filter six bundled timeline events, expand details, and explore MITRE ATT&CK mappings.        |
 
-Try these commands for fun:
+> **Experimental shared lab:** use only disposable, non-sensitive files. The current lab does not provide private user workspaces or a guaranteed deletion period. Keep your original files elsewhere; `freeze` is not a backup. The incident dashboard uses bundled historical data, and its response, sharing, and export buttons are presentation controls.
 
-*   `sudo make me a sandwich`
-*   `xyzzy`
-*   `id10t`
-*   `cow`
-*   `doge`
-*   `parrot`
-*   `matrix` (Press any key to exit)
-*   *Idle Screen Burn:* Wait 30 seconds without typing...
+## A closer look
 
-## Technology Stack
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/terminal.jpg" alt="The live terminal showing its help command and available lab commands" /><br /><strong>A real command interface</strong><br />File experiments, lessons, and a few hidden distractions.</td>
+    <td width="50%"><img src="docs/images/checksum-lesson.jpg" alt="The checksum lesson displayed inside the live Bitrot terminal" /><br /><strong>Learn while you experiment</strong><br />Short explanations of data integrity and recovery.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/attack-flow.jpg" alt="A browser remote debugging detection diagram connecting Sysmon and PowerShell evidence to risk analysis and an alert" /><br /><strong>Follow the detection logic</strong><br />Visual guides connect evidence, analysis, and alerts.</td>
+    <td width="50%"><img src="docs/images/incident-dashboard.jpg" alt="The incident dashboard demo with overview metrics, a timeline, and investigation context" /><br /><strong>Explore an incident</strong><br />A dashboard built around a bundled historical example.</td>
+  </tr>
+</table>
 
-*   **Frontend:** React (with Vite), TypeScript, Tailwind CSS, Framer Motion, xterm.js
-*   **Backend:** Cloudflare Pages Functions (TypeScript)
-*   **Storage:** Cloudflare R2 (File Data), Cloudflare KV (Metadata)
-*   **Scheduling:** Cloudflare Cron Triggers
+Screenshots show the existing application, captured in September 2026. See [image sources](docs/images/README.md) for capture details and reproducible artwork.
 
-## Development
+## Try the terminal
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+Open the [lab](https://bitrot.sh/lab), click inside the terminal, and enter:
 
-2.  **Run Frontend Dev Server:** (Frontend UI only, no backend functions)
-    ```bash
-    npm run dev
-    ```
+```text
+help
+lessons list
+lessons 1-checksums
+```
 
-3.  **Run Full Stack Locally (Frontend + Backend):**
-    *   Ensure you have Wrangler installed (`npm install -g wrangler`) or use `npx`.
-    *   Make sure `wrangler.toml` has valid `preview_id` and `preview_bucket_name` entries pointing to your created KV/R2 resources (or placeholders if just testing locally without real storage).
-    *   Build the frontend first: `npm run build`
-    *   Start the Pages development server:
-        ```bash
-        # Replace with your actual KV namespace binding name if different
-        # Replace with your actual R2 bucket binding name if different
-        npx wrangler pages dev ./dist --kv BITROT_KV --r2 BITROT_R2 
-        ```
-        This simulates the Cloudflare environment locally.
+For file experiments, start a [local lab](docs/DEVELOPMENT.md#run-the-local-lab) and use a small throwaway text file or PNG. The `upload` command opens a file picker and returns an ID. Files must be non-empty and no larger than **5 MiB**.
 
-## Deployment
+```text
+upload
+list
+rot <file-id> --level 2 --mode ascii-shuffle
+view <file-id> 0
+```
 
-This project is configured for easy deployment via Cloudflare Pages connected to a GitHub repository.
+Replace `<file-id>` with the ID returned by `upload`. `rot` generates a new download from the original; it does not save that generated result as an archive level. Random decay is not deterministic, so repeating a command can produce a different result.
 
-1.  Push your code (including `wrangler.toml`, `/functions` directory, and built `/dist` assets implicitly handled by the build command) to your main branch on GitHub.
-2.  Ensure your Cloudflare Pages project is connected to this repository.
-3.  Configure build settings in the Cloudflare dashboard:
-    *   Build command: `npm run build`
-    *   Build output directory: `dist`
-    *   Framework Preset: Vite (or auto-detected)
-    *   **Important:** Ensure no custom "Deploy command" is set.
-4.  Cloudflare Pages will automatically build the project, deploy the static assets, discover the functions in the `/functions` directory, and apply bindings based on `wrangler.toml`.
-5.  Verify KV and R2 bindings are active in the Pages project settings (**Settings -> Functions -> Bindings**).
+| Decay mode      | Effect                            | Current scope                                                  |
+| --------------- | --------------------------------- | -------------------------------------------------------------- |
+| `bit-flip`      | Changes random bits in the file.  | Any bytes; the result may no longer open.                      |
+| `ascii-shuffle` | Swaps characters in decoded text. | Best with simple ASCII text.                                   |
+| `color-drain`   | Darkens PNG colour channels.      | Use an 8-bit RGBA PNG; other PNG formats may remain unchanged. |
 
-## Backend Setup (Cloudflare)
+JPEG glitch is a placeholder. Scheduled decay code exists, but requires a separately wired Worker and Cron Trigger; a Pages build alone does not enable it. See the [current implementation notes](docs/DEVELOPMENT.md#current-boundaries).
 
-This project relies on Cloudflare's serverless platform:
+## Run locally
 
-*   **Functions:** Backend logic lives in the `/functions` directory (e.g., `upload.ts`, `list.ts`, `cron-decay.ts`). Cloudflare Pages automatically detects and deploys these.
-*   **Storage:**
-    *   Cloudflare R2 stores the actual file data for each decay level (`{id}/level_{n}`).
-    *   Cloudflare KV stores JSON metadata for each file (ID, name, type, size, current level, decay mode, next decay time).
-*   **Configuration:** `wrangler.toml` defines the KV namespace ID and R2 bucket name used by the functions. You **must** create these resources in your Cloudflare dashboard and update `wrangler.toml` with the correct values before deploying.
-*   **Bindings:** The bindings defined in `wrangler.toml` connect your code (`env.BITROT_KV`, `env.BITROT_R2`) to your actual Cloudflare resources. Ensure they are correctly set up in the Pages dashboard settings.
-*   **Scheduling:** Cron Triggers, defined in `wrangler.toml`, automatically run the `functions/cron-decay.ts` function on a schedule (currently hourly) to progress file decay.
+Use **Node.js 22** and npm, matching the CI environment.
 
-## Roadmap / Future Features
+```bash
+git clone https://github.com/jsaveker/bitrot.git
+cd bitrot
+npm ci
+npm run dev
+```
 
-*   Implement remaining decay algorithms: JPEG Glitch, Gamma Burn.
-*   Add more `lessons`.
-*   Create a proper API (`/api/...`) for programmatic access (e.g., `curl https://bitrot.sh/api/rot?id=XYZ&level=4`).
-*   Develop a CLI client (`npx bitrot-cli rot file.jpg --level 3`).
-*   Implement user sessions/authentication (e.g., GitHub OAuth) to save labs.
-*   Add share tokens for collaborative file sabotage.
-*   Create a "Most Corrupted" leaderboard.
-*   Implement "Good Citizen" mode (check uploaded text hashes against HaveIBeenPwned).
-*   Design T-shirt merchandise.
+Open the URL printed by Vite. This starts the **frontend only**: the landing page and incident views work, but uploads, lesson discovery, and the attack-flow index need Cloudflare Functions. The [developer guide](docs/DEVELOPMENT.md) covers local bindings, build checks, and hosting boundaries.
 
-## Contributing
+## How it fits together
 
-(Placeholder - Contributions welcome! Please open an issue to discuss changes.)
+![Architecture: React and xterm in the browser call Pages Functions; KV stores metadata and R2 stores file bytes. Bundled lessons and incident documents are static assets.](docs/images/architecture.svg)
+
+- **Frontend:** React, Vite, Tailwind CSS, Framer Motion, and xterm.js.
+- **Visualisations:** React Flow, Dagre, Lucide icons, and React Markdown.
+- **Backend:** TypeScript Pages Functions with Cloudflare KV and R2.
+- **Image processing:** WebAssembly PNG decoding and encoding through `@cf-wasm/png`.
+
+## Contribute
+
+Small, focused contributions are welcome. Useful areas include clearer first-run guidance, accessible terminal interactions, image-format support, and reproducible decay experiments. Open an [issue](https://github.com/jsaveker/bitrot/issues) to discuss larger changes, then include the relevant build checks and screenshots in your pull request.
+
+Start with the [developer guide](docs/DEVELOPMENT.md), [terminal reference](docs/COMMANDS.md), or [incident demo notes](INCIDENT_DEMO.md).
 
 ## License
 
-Apache-2.0 license 
+[Apache License 2.0](LICENSE). Created by [Jim Saveker](https://github.com/jsaveker).
