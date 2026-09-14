@@ -2,122 +2,66 @@
 
 [← Back to the README](../README.md)
 
-Bitrot has a React frontend, TypeScript Pages Functions, and bundled educational content. Vite serves the frontend; Wrangler supplies the local Functions runtime and storage bindings.
+Bitrot's file lab runs entirely in the browser. Cloudflare hosts static assets and read-only content indexes; it does not receive file data.
 
-## Frontend development
+## Run the local lab
 
-Use Node.js 22, matching `.github/workflows/ci.yml`.
+Use Node.js 22 and npm:
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Vite prints the local URL. The landing page, `/inc`, and `/incident` use bundled assets. `/lab` file commands, lesson discovery, and the `/attack` index require backend routes.
-
-To build and preview static assets:
+Open the Vite URL. Local file selection and processing work without Cloudflare or storage credentials. To also serve lesson discovery and the existing read-only content routes:
 
 ```bash
 npm run build
-npm run preview
+npx wrangler pages dev dist
 ```
 
-`preview` does not start the backend.
+No KV or R2 bindings are needed. `wrangler.jsonc` describes the existing Pages project; there is no scheduled decay job in this deployment.
 
-## Run the local lab
-
-Build the frontend, then start Pages with local KV and R2 bindings:
+## Verify changes
 
 ```bash
-npm run build
-npx wrangler@4.131.1 pages dev dist --kv BITROT_KV --r2 BITROT_R2
-```
-
-Use the URL Wrangler prints. Keep this in local mode, with disposable files. Do not add remote storage settings or reuse production bindings for experiments. Local Pages development does not schedule the separate decay handler.
-
-The repository has both `wrangler.toml` and `wrangler.jsonc`, representing different hosting approaches. Wrangler may warn that the JSON configuration lacks `pages_build_output_dir`. Explicit CLI bindings are provided above for the local lab; reconcile the configuration before a production deployment.
-
-## Repository map
-
-| Path                                    | Purpose                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| `src/App.jsx`                           | Landing page and route definitions.                                    |
-| `src/components/Terminal.tsx`           | Browser terminal, command parsing, and API calls.                      |
-| `src/components/IncidentReport.jsx`     | Historical incident narrative and React Flow graph.                    |
-| `src/components/ModernIncidentView.jsx` | Dashboard demonstration with hardcoded event data.                     |
-| `functions/`                            | Upload, list, retrieve, transform, freeze, and content-index handlers. |
-| `functions/decay.ts`                    | Bit flipping, text shuffling, PNG colour drain, and JPEG placeholder.  |
-| `functions/cron-decay.ts`               | Scheduled handler; requires explicit Worker/Cron wiring.               |
-| `public/`                               | Lessons, detection diagrams, ASCII art, and incident Markdown.         |
-| `scripts/readme-art.mjs`                | Reproducible README illustrations.                                     |
-
-## Request and storage model
-
-The browser calls same-origin routes:
-
-| Route                      | Method | Purpose                                              |
-| -------------------------- | ------ | ---------------------------------------------------- |
-| `/upload`                  | POST   | Accept multipart `file`; store level 0 and metadata. |
-| `/list`                    | GET    | Return archive metadata.                             |
-| `/view/<id>[/<level>]`     | GET    | Retrieve a stored level, defaulting to the latest.   |
-| `/rot?id=…&level=…&mode=…` | GET    | Transform the original and return a download.        |
-| `/freeze?id=…`             | POST   | Set the next scheduled decay time to null.           |
-| `/lessons`                 | GET    | List lesson IDs and titles.                          |
-| `/attack-flows`            | GET    | List four bundled HTML detection diagrams.           |
-
-`BITROT_KV` stores JSON metadata under each file ID: filename, MIME type, size, creation time, mode, current level, and next decay time. `BITROT_R2` stores file bytes at `<id>/level_<n>`. On-demand `rot` results are returned directly and do not advance the saved level.
-
-## Current boundaries
-
-- The lab is experimental and shared; it does not implement private user workspaces, a backup service, or a guaranteed deletion period.
-- Bit-flipping can corrupt headers and make outputs unreadable. Text shuffling works best with simple ASCII input.
-- PNG colour drain currently assumes 8-bit RGBA pixels. Other formats can return unchanged data. JPEG glitch returns the original unchanged.
-- Decay uses random choices without a stored seed, so runs are not reproducible.
-- A `scheduled` export in a Pages Functions file is not automatically registered as a Cron Trigger. The generated Pages Worker contains request handlers, while scheduled work needs an explicitly deployed Worker. See [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
-- The incident dashboard has working search, filters, and expansion controls, but no live response integrations. See [incident demo notes](../INCIDENT_DEMO.md).
-
-## Build and verification
-
-The existing CI runs:
-
-```bash
-npm ci --include=dev
 npm audit --audit-level=moderate
+npm run typecheck
+npm test
+npm run build:functions
 npm run build
 ```
 
-At the September 2026 documentation refresh, the frontend and Functions compiled, but the locked dependency audit reported advisories. A successful build is not a clean security audit. Review the current audit result before deployment.
+CI runs these checks on pull requests and pushes to main. TypeScript is pinned; JSX files are not covered by its current configuration. Browser smoke checks should also exercise file selection, worker processing, downloads, errors, and reload behaviour.
 
-Compile the Pages Functions separately:
+## File security model
 
-```bash
-npx wrangler@4.131.1 pages functions build functions --outdir /tmp/bitrot-functions-build
-```
+- `src/lib/local-files.ts` holds originals and latest results in tab memory. It uses no persistent browser storage or cloud API.
+- `src/lib/decay.worker.ts` transforms a copy in a dedicated worker. A five-second timeout terminates stalled work.
+- `src/lib/local-decay.ts` validates levels, sizes, PNG dimensions, and mode names. Processing has a bounded operation count.
+- User-controlled labels have terminal controls stripped. Download names retain their extensions and remove unsafe filename characters.
+- Downloads use `application/octet-stream` blobs and the browser's download action. User content is never inserted into the DOM or previewed as HTML/SVG.
+- `server/retired-files.ts` returns a fixed, non-cacheable 410 response for the old cloud-file API. `functions/_middleware.ts` also covers bare and nested legacy paths.
+- `/upload`, `/list`, `/view`, `/rot`, and `/freeze` reject all HTTP methods before reading bodies or accessing storage. The old scheduled export is inert.
 
-The project does not currently pin TypeScript or provide a test script. TypeScript 5.9.3 can check the existing configuration:
+The source no longer requires KV/R2 bindings. Existing Cloudflare objects are not deleted or migrated by this change. Account owners can inventory or clean up those resources separately through their administrative access. Do not reintroduce public access to legacy file IDs.
 
-```bash
-npx --package=typescript@5.9.3 tsc --noEmit --project tsconfig.json
-```
+## Limits and behaviour
 
-Most UI files are JSX and are outside this check because `allowJs` is false. A future compiler upgrade also needs the legacy `moduleResolution` setting reviewed.
+The tab accepts 10 files and 20 MiB of originals, with a 5 MiB limit per input/output. It keeps each original and at most one result; temporary worker copies also consume memory. PNG processing is capped at 4 million pixels and 4096 pixels per side. Files disappear when the page reloads or closes.
 
-## Hosting
+Levels 0–10 control bounded transformation intensity. Level 0 returns an unchanged copy. Random changes are not reproducible; repeated commands can differ. ASCII shuffle rejects non-ASCII bytes rather than silently damaging an unsupported encoding. PNG colour drain uses browser decoding and normalises pixels through a canvas.
 
-The source targets Cloudflare Pages Functions with KV and R2. The checked-in JSON configuration instead describes static Worker assets, while the TOML contains older Pages-era settings and a cron declaration. Neither should be treated as a verified, complete production recipe.
+## Hosting and legacy content
 
-Before deploying, establish one authoritative configuration, separate development and production storage, verify the Functions bindings, and deploy scheduled work explicitly if required. Follow the current [Pages configuration documentation](https://developers.cloudflare.com/pages/functions/wrangler-configuration/).
+The existing Cloudflare Pages Git integration deploys the frontend and Functions. Review the CI and Cloudflare checks before merging a pull request, then verify the production legacy routes return 410 with `X-Bitrot-File-Policy: local-only-v1`.
 
-The repository CI builds and audits; Cloudflare deployment configuration is managed separately. This documentation refresh does not change the live hosting configuration.
+Other pre-existing routes (`/attack`, `/incident`, `/inc`) remain in the repository. They are separate security-content demonstrations and are not featured as part of the data-decay lab. See [incident demo notes](../INCIDENT_DEMO.md) for their limitations.
 
-## Contributions and graphics
-
-Keep changes focused and describe the behaviour you verified. UI pull requests should include desktop and narrow-screen screenshots. Backend changes should exercise storage errors, input limits, and the relevant file lifecycle.
-
-Regenerate documentation artwork with:
+## Documentation artwork
 
 ```bash
 node scripts/readme-art.mjs
 ```
 
-Screenshot provenance is recorded in [`docs/images/README.md`](images/README.md).
+Screenshot provenance is recorded in [images/README.md](images/README.md).

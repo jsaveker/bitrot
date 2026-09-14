@@ -1,7 +1,5 @@
 {
-  "name": "bitrot-site",
+  "name": "bitrot",
   "compatibility_date": "2025-04-19",
-  "assets": {
-    "directory": "./dist"
-  }
-} 
+  "pages_build_output_dir": "./dist"
+}

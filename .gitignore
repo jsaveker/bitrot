@@ -67,4 +67,7 @@ lerna-debug.log*
 *.tgz
 
 # Yarn Integrity file
-.yarn-integrity 
+.yarn-integrity
+# Local Cloudflare build and development artifacts
+.wrangler/
+.functions-build/

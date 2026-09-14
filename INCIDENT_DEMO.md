@@ -4,8 +4,6 @@
 
 The `/inc` route is a demonstration of an incident investigation interface, built around bundled material from a May 17–19, 2025 analysis. It is not connected to a live SIEM or response service.
 
-![The incident dashboard with summary cards, a searchable timeline, and context sidebar](docs/images/incident-dashboard.jpg)
-
 ## Working interactions
 
 - Search six bundled timeline events by title or description.

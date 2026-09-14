@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <strong>A terminal playground for data decay, integrity lessons, and security visualisations.</strong><br />
-  Deliberately corrupt disposable files. Explore how data changes. Follow the evidence in an attack timeline.
+  <strong>A browser-only terminal playground for data decay and integrity lessons.</strong><br />
+  Experiment with disposable files on your own device. Flip bits, shuffle text, and learn what survives.
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React 19" />
-  <img src="https://img.shields.io/badge/Cloudflare-Pages%20%2B%20R2-f38020?style=flat-square" alt="Cloudflare Pages and R2" />
+  <img src="https://img.shields.io/badge/Cloudflare-Pages-f38020?style=flat-square" alt="Cloudflare Pages" />
   <img src="https://img.shields.io/badge/Status-experimental-a78bfa?style=flat-square" alt="Status: experimental" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-b7f36b?style=flat-square" alt="Apache 2.0 license" /></a>
 </p>
@@ -25,28 +25,22 @@
 
 ## Inside Bitrot
 
-Bitrot combines a deliberately mischievous data-decay experiment with educational security content. The terminal is real: commands call Cloudflare Functions to store files, generate altered versions, and retrieve lessons. The corruption meter on the landing page is decorative.
+Bitrot lets you deliberately corrupt local files and learn about checksums and backups through a cyberpunk terminal. File processing happens in a browser worker. **File contents and filenames are not uploaded.**
 
-| Explore                                                 | What you can do                                                                                          |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [Data Decay Lab](https://bitrot.sh/lab)                 | Upload a disposable sample, list stored files, retrieve saved levels, and generate a corrupted download. |
-| [Integrity lessons](docs/COMMANDS.md#learn-and-explore) | Read short introductions to checksums and backups directly in the terminal.                              |
-| [Attack-flow library](https://bitrot.sh/attack/)        | Browse four detection diagrams covering ClickFix, browser remote debugging, and RMM tools.               |
-| [Incident report](https://bitrot.sh/incident)           | Explore a historical incident narrative and an interactive graph of events and entities.                 |
-| [Incident dashboard demo](https://bitrot.sh/inc)        | Search and filter six bundled timeline events, expand details, and explore MITRE ATT&CK mappings.        |
+| Explore                                                 | What you can do                                                                      |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [Data Decay Lab](https://bitrot.sh/lab)                 | Choose a local file, change its bits or text, darken a PNG, and download the result. |
+| [Integrity lessons](docs/COMMANDS.md#learn-and-explore) | Read short introductions to checksums and backups in the terminal.                   |
+| [Command guide](docs/COMMANDS.md)                       | Learn the file commands and discover the terminal's Easter eggs.                     |
 
-> **Experimental shared lab:** use only disposable, non-sensitive files. The current lab does not provide private user workspaces or a guaranteed deletion period. Keep your original files elsewhere; `freeze` is not a backup. The incident dashboard uses bundled historical data, and its response, sharing, and export buttons are presentation controls.
+> **Local files, temporary session:** the lab holds files in memory in your current browser tab. Reloading or closing the page clears them. Keep your original files and download any results you want to save. The old cloud archive is retired and its public file endpoints are closed.
 
 ## A closer look
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/terminal.jpg" alt="The live terminal showing its help command and available lab commands" /><br /><strong>A real command interface</strong><br />File experiments, lessons, and a few hidden distractions.</td>
-    <td width="50%"><img src="docs/images/checksum-lesson.jpg" alt="The checksum lesson displayed inside the live Bitrot terminal" /><br /><strong>Learn while you experiment</strong><br />Short explanations of data integrity and recovery.</td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/images/attack-flow.jpg" alt="A browser remote debugging detection diagram connecting Sysmon and PowerShell evidence to risk analysis and an alert" /><br /><strong>Follow the detection logic</strong><br />Visual guides connect evidence, analysis, and alerts.</td>
-    <td width="50%"><img src="docs/images/incident-dashboard.jpg" alt="The incident dashboard demo with overview metrics, a timeline, and investigation context" /><br /><strong>Explore an incident</strong><br />A dashboard built around a bundled historical example.</td>
+    <td width="50%"><img src="docs/images/terminal.jpg" alt="The local-only terminal showing its help command and available lab commands" /><br /><strong>A real command interface</strong><br />File experiments, lessons, and a few hidden distractions.</td>
+    <td width="50%"><img src="docs/images/checksum-lesson.jpg" alt="The checksum lesson displayed inside the Bitrot terminal" /><br /><strong>Learn while you experiment</strong><br />Short explanations of data integrity and recovery.</td>
   </tr>
 </table>
 
@@ -62,24 +56,24 @@ lessons list
 lessons 1-checksums
 ```
 
-For file experiments, start a [local lab](docs/DEVELOPMENT.md#run-the-local-lab) and use a small throwaway text file or PNG. The `upload` command opens a file picker and returns an ID. Files must be non-empty and no larger than **5 MiB**.
+For file experiments, use a small throwaway text file or PNG. The `load` command opens a local file picker and returns an ID; `upload` remains an alias for existing users, but sends nothing to a server. Files must be non-empty and no larger than **5 MiB**.
 
 ```text
-upload
+load
 list
 rot <file-id> --level 2 --mode ascii-shuffle
 view <file-id> 0
 ```
 
-Replace `<file-id>` with the ID returned by `upload`. `rot` generates a new download from the original; it does not save that generated result as an archive level. Random decay is not deterministic, so repeating a command can produce a different result.
+Replace `<file-id>` with the ID returned by `load`. `rot` generates a download from the untouched original and keeps the latest result in this tab. Levels are **0–10**. The tab holds up to **10 files / 20 MiB of originals**, and each transformation has a five-second time limit. Random transformations can produce different results on each run.
 
-| Decay mode      | Effect                            | Current scope                                                  |
-| --------------- | --------------------------------- | -------------------------------------------------------------- |
-| `bit-flip`      | Changes random bits in the file.  | Any bytes; the result may no longer open.                      |
-| `ascii-shuffle` | Swaps characters in decoded text. | Best with simple ASCII text.                                   |
-| `color-drain`   | Darkens PNG colour channels.      | Use an 8-bit RGBA PNG; other PNG formats may remain unchanged. |
+| Decay mode      | Effect                            | Current scope                                                        |
+| --------------- | --------------------------------- | -------------------------------------------------------------------- |
+| `bit-flip`      | Changes random bits in the file.  | Any bytes; the result may no longer open.                            |
+| `ascii-shuffle` | Swaps characters in decoded text. | Plain ASCII text; other encodings are rejected.                      |
+| `color-drain`   | Darkens PNG colour channels.      | Browser-decodable PNGs up to 4 million pixels, 4096 pixels per side. |
 
-JPEG glitch is a placeholder. Scheduled decay code exists, but requires a separately wired Worker and Cron Trigger; a Pages build alone does not enable it. See the [current implementation notes](docs/DEVELOPMENT.md#current-boundaries).
+Downloads use opaque binary blobs; the lab never displays uploaded HTML or SVG as web content. There is no cloud storage or scheduled decay. Your originals stay unchanged until you remove them from the tab with `forget <file-id>`.
 
 ## Run locally
 
@@ -92,22 +86,21 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite. This starts the **frontend only**: the landing page and incident views work, but uploads, lesson discovery, and the attack-flow index need Cloudflare Functions. The [developer guide](docs/DEVELOPMENT.md) covers local bindings, build checks, and hosting boundaries.
+Open the URL printed by Vite. This starts the frontend and local file experiments. Lesson discovery still needs the small read-only Cloudflare Functions backend. The [developer guide](docs/DEVELOPMENT.md) covers build checks and local Cloudflare previews.
 
 ## How it fits together
 
-![Architecture: React and xterm in the browser call Pages Functions; KV stores metadata and R2 stores file bytes. Bundled lessons and incident documents are static assets.](docs/images/architecture.svg)
+![Architecture: local file bytes enter tab memory, a browser worker transforms a copy, and the result downloads directly. File data never goes to cloud storage.](docs/images/architecture.svg)
 
 - **Frontend:** React, Vite, Tailwind CSS, Framer Motion, and xterm.js.
-- **Visualisations:** React Flow, Dagre, Lucide icons, and React Markdown.
-- **Backend:** TypeScript Pages Functions with Cloudflare KV and R2.
-- **Image processing:** WebAssembly PNG decoding and encoding through `@cf-wasm/png`.
+- **File processing:** a dedicated browser worker with bounded work and PNG decoding through browser APIs.
+- **Hosting:** Cloudflare Pages, with read-only content indexes and explicit rejection of retired cloud-file routes.
 
 ## Contribute
 
 Small, focused contributions are welcome. Useful areas include clearer first-run guidance, accessible terminal interactions, image-format support, and reproducible decay experiments. Open an [issue](https://github.com/jsaveker/bitrot/issues) to discuss larger changes, then include the relevant build checks and screenshots in your pull request.
 
-Start with the [developer guide](docs/DEVELOPMENT.md), [terminal reference](docs/COMMANDS.md), or [incident demo notes](INCIDENT_DEMO.md).
+Start with the [developer guide](docs/DEVELOPMENT.md), [terminal reference](docs/COMMANDS.md).
 
 ## License
 

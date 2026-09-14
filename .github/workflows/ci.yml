@@ -26,5 +26,14 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Security regression tests
+        run: npm test
+
+      - name: Build Functions
+        run: npm run build:functions
+
       - name: Build
         run: npm run build

@@ -1,5 +1,5 @@
-import React from 'react';
-import Terminal from './Terminal.tsx'; // Update file extension
+import React from "react";
+import Terminal from "./Terminal.tsx"; // Update file extension
 
 function Lab() {
   return (
@@ -18,10 +18,13 @@ function Lab() {
 
       {/* Footer (optional, could show status or link back) */}
       <footer className="p-1 text-xs text-center text-gray-600 border-t border-cyberpunk-primary/30">
-        <a href="/" className="hover:text-cyberpunk-secondary">// Exit Lab</a> | Status: Nominal
+        <a href="/" className="hover:text-cyberpunk-secondary">
+          // Exit Lab
+        </a>{" "}
+        | Local-only · Files stay on this device
       </footer>
     </div>
   );
 }
 
-export default Lab; 
+export default Lab;
